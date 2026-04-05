@@ -1,9 +1,8 @@
-from flask import Blueprint, render_template, redirect, url_for, flash
-from flask_login import login_required, current_user
+from flask import Blueprint, flash, redirect, render_template, url_for
+from flask_login import current_user, login_required
 
-from app.models.course import Course
-from app.models.student import Student
-from app.models.user import User
+from app.services.dashboard_service import get_dashboard_stats
+from app.services.service_exceptions import PermissionDeniedError
 
 main_bp = Blueprint("main_bp", __name__)
 
@@ -16,13 +15,9 @@ def home():
 @main_bp.route("/dashboard")
 @login_required
 def dashboard():
-    if current_user.is_student:
-        flash("Students do not have access to the management dashboard.", "error")
+    try:
+        stats = get_dashboard_stats(current_user)
+        return render_template("dashboard.html", stats=stats, user=current_user)
+    except PermissionDeniedError as exc:
+        flash(str(exc), "error")
         return redirect(url_for("main_bp.home"))
-
-    stats = {
-        "students_count": Student.query.count(),
-        "courses_count": Course.query.count(),
-        "users_count": User.query.count(),
-    }
-    return render_template("dashboard.html", stats=stats, user=current_user)

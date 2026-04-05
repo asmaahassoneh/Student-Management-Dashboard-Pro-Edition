@@ -1,26 +1,20 @@
 from flask import (
     Blueprint,
+    current_app,
     flash,
     redirect,
     render_template,
     request,
     url_for,
-    current_app,
 )
-from flask_login import current_user, login_required, login_user, logout_user
-from sqlalchemy.exc import SQLAlchemyError
+from flask_login import current_user, login_required
 
-from app.utils.role_helpers import detect_role_and_student_id
-from app.extensions import db
-from app.models.student import Student
-from app.models.user import User
-from app.utils.file_helpers import save_profile_picture
-from app.utils.validators import (
-    normalize_email,
-    normalize_text,
-    validate_login_form,
-    validate_register_form,
+from app.services.auth_service import (
+    authenticate_user,
+    logout_current_user,
+    register_user,
 )
+from app.services.service_exceptions import ConflictError, ValidationError
 
 auth_bp = Blueprint("auth_bp", __name__)
 
@@ -31,77 +25,18 @@ def register():
         return redirect(url_for("main_bp.home"))
 
     if request.method == "POST":
-        name = normalize_text(request.form.get("name", ""))
-        username = normalize_text(request.form.get("username", ""))
-        email = normalize_email(request.form.get("email", ""))
-        password = request.form.get("password", "")
-        confirm_password = request.form.get("confirm_password", "")
-
-        error = validate_register_form(username, email, password, confirm_password)
-        if error:
-            flash(error, "error")
-            return render_template("register.html")
-
-        if not name:
-            flash("Full name is required.", "error")
-            return render_template("register.html")
-
-        role, extracted_student_id, role_error = detect_role_and_student_id(email)
-        if role_error:
-            flash(role_error, "error")
-            return render_template("register.html")
-
-        existing_user = User.query.filter(
-            (User.username == username) | (User.email == email)
-        ).first()
-        if existing_user:
-            flash("Username or email already exists.", "error")
-            return render_template("register.html")
-
-        if role == User.ROLE_STUDENT:
-            existing_student = Student.query.filter_by(
-                student_id=extracted_student_id
-            ).first()
-            if existing_student:
-                flash("Student ID already exists.", "error")
-                return render_template("register.html")
-
-        profile_picture_file = request.files.get("profile_picture")
-        profile_picture = save_profile_picture(
-            profile_picture_file,
-            current_app.config["UPLOAD_FOLDER"],
-            current_app.config["ALLOWED_IMAGE_EXTENSIONS"],
-        )
-
-        user = User(
-            username=username,
-            email=email,
-            role=role,
-            profile_picture=profile_picture,
-        )
-        user.set_password(password)
-
         try:
-            db.session.add(user)
-            db.session.flush()
-
-            if role == User.ROLE_STUDENT:
-                student = Student(
-                    name=name,
-                    student_id=extracted_student_id,
-                    user_id=user.id,
-                )
-                db.session.add(student)
-
-            db.session.commit()
-
-        except SQLAlchemyError:
-            db.session.rollback()
-            flash("Something went wrong while creating your account.", "error")
-            return render_template("register.html"), 500
-
-        flash("Registration successful. You can now log in.", "success")
-        return redirect(url_for("auth_bp.login"))
+            register_user(
+                request.form,
+                request.files,
+                current_app.config["UPLOAD_FOLDER"],
+                current_app.config["ALLOWED_IMAGE_EXTENSIONS"],
+            )
+            flash("Registration successful. You can now log in.", "success")
+            return redirect(url_for("auth_bp.login"))
+        except (ValidationError, ConflictError) as exc:
+            flash(str(exc), "error")
+            return render_template("register.html")
 
     return render_template("register.html")
 
@@ -112,27 +47,17 @@ def login():
         return redirect(url_for("main_bp.home"))
 
     if request.method == "POST":
-        email = normalize_email(request.form.get("email", ""))
-        password = request.form.get("password", "")
+        try:
+            user = authenticate_user(request.form)
+            flash("Login successful.", "success")
 
-        error = validate_login_form(email, password)
-        if error:
-            flash(error, "error")
+            if user.is_student:
+                return redirect(url_for("main_bp.home"))
+
+            return redirect(url_for("main_bp.dashboard"))
+        except ValidationError as exc:
+            flash(str(exc), "error")
             return render_template("login.html")
-
-        user = User.query.filter_by(email=email).first()
-
-        if user is None or not user.check_password(password):
-            flash("Invalid email or password.", "error")
-            return render_template("login.html")
-
-        login_user(user)
-        flash("Login successful.", "success")
-
-        if user.is_student:
-            return redirect(url_for("main_bp.home"))
-
-        return redirect(url_for("main_bp.dashboard"))
 
     return render_template("login.html")
 
@@ -140,6 +65,6 @@ def login():
 @auth_bp.route("/logout", methods=["POST"])
 @login_required
 def logout():
-    logout_user()
+    logout_current_user()
     flash("Logged out successfully.", "success")
     return redirect(url_for("auth_bp.login"))
