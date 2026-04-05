@@ -7,31 +7,15 @@ from app.models.student import Student
 from app.models.user import User
 from app.services.user_service import delete_user, get_user_by_id, update_user
 from app.utils.decorators import admin_required
-from app.utils.validators import normalize_email, normalize_text, validate_user_payload
+from app.utils.validators import (
+    normalize_email,
+    normalize_text,
+    validate_user_payload,
+    is_valid_email,
+)
+from app.utils.role_helpers import detect_role_and_student_id
 
 user_api_bp = Blueprint("user_api_bp", __name__, url_prefix="/api/users")
-
-
-def is_valid_email_format(email):
-    email = (email or "").strip()
-    return "@" in email and "." in email.split("@")[-1]
-
-
-def detect_role_and_student_id(email):
-    email = normalize_email(email)
-
-    if email.endswith("@stu.najah.edu"):
-        local_part = email.split("@")[0]
-
-        if not local_part.startswith("s") or not local_part[1:].isdigit():
-            return None, None, "Invalid student email format."
-
-        return User.ROLE_STUDENT, local_part[1:], None
-
-    if email.endswith("@najah.edu"):
-        return User.ROLE_INSTRUCTOR, None, None
-
-    return None, None, "Please use a valid An-Najah email address."
 
 
 @user_api_bp.route("", methods=["POST"])
@@ -83,7 +67,7 @@ def create_user():
     if existing_email:
         return jsonify({"success": False, "error": "Email already exists."}), 409
 
-    if not is_valid_email_format(email):
+    if not is_valid_email(email):
         return jsonify({"success": False, "error": "Email is not valid."}), 400
 
     role, extracted_student_id, role_error = detect_role_and_student_id(email)
@@ -237,7 +221,7 @@ def edit_user(user_id):
         if existing_email and existing_email.id != user.id:
             return jsonify({"success": False, "error": "Email already exists."}), 409
 
-        if not is_valid_email_format(normalized_email):
+        if not is_valid_email(normalized_email):
             return jsonify({"success": False, "error": "Email is not valid."}), 400
 
         data["email"] = normalized_email

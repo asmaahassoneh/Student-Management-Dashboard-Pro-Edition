@@ -3,24 +3,7 @@ from app.extensions import db
 from app.models.user import User
 from app.models.student import Student
 from app.models.course import Course
-
-
-def extract_student_id(email):
-    """
-    Extract student_id from email:
-    s12112458@stu.najah.edu -> 12112458
-    """
-    email = email.strip().lower()
-
-    if not email.endswith("@stu.najah.edu"):
-        return None
-
-    local_part = email.split("@")[0]
-
-    if not local_part.startswith("s") or not local_part[1:].isdigit():
-        return None
-
-    return local_part[1:]
+from app.utils.role_helpers import extract_student_id
 
 
 def seed():

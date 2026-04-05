@@ -10,6 +10,7 @@ from flask import (
 from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.utils.role_helpers import detect_role_and_student_id
 from app.extensions import db
 from app.models.student import Student
 from app.models.user import User
@@ -22,29 +23,6 @@ from app.utils.validators import (
 )
 
 auth_bp = Blueprint("auth_bp", __name__)
-
-
-def detect_role_and_student_id(email):
-    """
-    Rules:
-    - s12112458@stu.najah.edu -> student, student_id=12112458
-    - anything@najah.edu -> instructor
-    """
-    email = email.strip().lower()
-
-    if email.endswith("@stu.najah.edu"):
-        local_part = email.split("@")[0]
-
-        if not local_part.startswith("s") or not local_part[1:].isdigit():
-            return None, None, "Invalid student email format."
-
-        student_id = local_part[1:]
-        return User.ROLE_STUDENT, student_id, None
-
-    if email.endswith("@najah.edu"):
-        return User.ROLE_INSTRUCTOR, None, None
-
-    return None, None, "Please use a valid An-Najah email address."
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])

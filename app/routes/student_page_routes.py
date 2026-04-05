@@ -28,21 +28,9 @@ from app.utils.validators import (
     validate_student_form,
     validate_user_form,
 )
+from app.utils.role_helpers import extract_student_id
 
 student_page_bp = Blueprint("student_page_bp", __name__, url_prefix="/students")
-
-
-def extract_student_id_from_email(email):
-    email = normalize_email(email)
-
-    if not email.endswith("@stu.najah.edu"):
-        return None
-
-    local_part = email.split("@")[0]
-    if not local_part.startswith("s") or not local_part[1:].isdigit():
-        return None
-
-    return local_part[1:]
 
 
 @student_page_bp.route("")
@@ -142,7 +130,7 @@ def add_student():
             courses=courses,
         )
 
-    student_id = extract_student_id_from_email(form_data["email"])
+    student_id = extract_student_id(form_data["email"])
     if not student_id:
         return render_template(
             "add_student.html",

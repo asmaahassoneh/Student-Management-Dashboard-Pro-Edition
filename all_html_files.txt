@@ -1,0 +1,826 @@
+===== C:\Users\Msys\Desktop\Training\week9\Student Management Dashboard - Pro Edition\app\templates\403.html ===== 
+{% extends "base.html" %}
+{% block title %}Access Denied{% endblock %}
+
+{% block content %}
+<div class="home">
+  <div class="glass-card home-content">
+    <h1>403 - Access Denied</h1>
+    <p>You do not have permission to access this page.</p>
+
+    <div class="action-links">
+      <a class="btn" href="{{ url_for('main_bp.home') }}">Go Home</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+===== C:\Users\Msys\Desktop\Training\week9\Student Management Dashboard - Pro Edition\app\templates\404.html ===== 
+{% extends "base.html" %}
+{% block title %}Page Not Found{% endblock %}
+
+{% block content %}
+<div class="home">
+  <div class="glass-card home-content">
+    <h1>404 - Page Not Found</h1>
+    <p>The page you are looking for does not exist.</p>
+
+    <div class="action-links">
+      <a class="btn" href="{{ url_for('main_bp.home') }}">Go Home</a>
+      {% if current_user.is_authenticated %}
+      <a class="btn secondary-btn" href="{{ url_for('student_page_bp.list_students') }}">View Students</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+===== C:\Users\Msys\Desktop\Training\week9\Student Management Dashboard - Pro Edition\app\templates\add_course.html ===== 
+{% extends "base.html" %}
+{% block title %}Add Course{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <h2>Add Course</h2>
+
+    {% if error %}
+    <div class="error-msg">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST">
+      <div class="form-grid">
+        <input type="text" name="name" placeholder="Course name" value="{{ form_data.name }}" required />
+        <input type="text" name="code" placeholder="Course code" value="{{ form_data.code }}" required />
+        <textarea name="description" placeholder="Course description (optional)">{{ form_data.description }}</textarea>
+        <button type="submit">Add Course</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+===== C:\Users\Msys\Desktop\Training\week9\Student Management Dashboard - Pro Edition\app\templates\add_student.html ===== 
+{% extends "base.html" %}
+{% block title %}Add Student{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <h2>Add Student</h2>
+
+    {% if error %}
+    <div class="error-msg">{{ error }}</div>
+    {% endif %}
+
+    <p style="margin-bottom: 16px; opacity: 0.85;">
+      Student email must be like:
+      <strong>s12112458@stu.najah.edu</strong>
+      <br />
+      Student ID will be extracted automatically from the email.
+    </p>
+
+    <form method="POST" action="{{ url_for('student_page_bp.add_student') }}">
+      <div class="form-grid">
+        <input
+          type="text"
+          name="name"
+          placeholder="Enter student name"
+          value="{{ form_data.name }}"
+          required
+        />
+
+        <input
+          type="text"
+          name="username"
+          placeholder="Enter username"
+          value="{{ form_data.username }}"
+          required
+        />
+
+        <input
+          type="email"
+          name="email"
+          placeholder="Enter student email"
+          value="{{ form_data.email }}"
+          required
+        />
+
+        <input
+          type="password"
+          name="password"
+          placeholder="Enter password"
+          required
+        />
+
+        <input
+          type="password"
+          name="confirm_password"
+          placeholder="Confirm password"
+          required
+        />
+
+        <div class="courses-box">
+          <label class="courses-label">Select Courses</label>
+
+          {% for course in courses %}
+          <div class="course-option">
+            <label>
+              <input
+                type="checkbox"
+                name="course_ids"
+                value="{{ course.id }}"
+                {% if course.id|string in form_data.course_ids %}checked{% endif %}
+              />
+              {{ course.name }} ({{ course.code }})
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+
+        <button type="submit">Add Student</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+===== C:\Users\Msys\Desktop\Training\week9\Student Management Dashboard - Pro Edition\app\templates\add_user.html ===== 
+{% extends "base.html" %}
+{% block title %}Add User{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <h2>Add User</h2>
+
+    {% if error %}
+    <div class="error-msg">{{ error }}</div>
+    {% endif %}
+
+    <p style="margin-bottom: 16px; opacity: 0.85;">
+      Role is detected automatically from email:
+      <br>
+      <strong>Student:</strong> sXXXXXXX@stu.najah.edu
+      <br>
+      <strong>Instructor:</strong> name@najah.edu
+    </p>
+
+    <form method="POST" enctype="multipart/form-data">
+      <div class="form-grid">
+        <input type="text" name="username" placeholder="Username" value="{{ form_data.username }}" required />
+        <input type="text" name="name" placeholder="Full Name (required for student accounts)" value="{{ form_data.name }}" />
+        <input type="email" name="email" placeholder="Email" value="{{ form_data.email }}" required />
+        <input type="password" name="password" placeholder="Password" required />
+        <input type="password" name="confirm_password" placeholder="Confirm Password" required />
+        <input type="file" name="profile_picture" accept="image/*" />
+        <button type="submit">Add User</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+===== C:\Users\Msys\Desktop\Training\week9\Student Management Dashboard - Pro Edition\app\templates\base.html ===== 
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Flask Student Management Dashboard{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="nav-container">
+        <div class="logo">🎓 Student Dashboard</div>
+
+        <div class="links">
+          <a href="{{ url_for('main_bp.home') }}">Home</a>
+
+          {% if current_user.is_authenticated %}
+            {% if current_user.is_student %}
+              <a href="{{ url_for('student_page_bp.my_courses') }}">My Courses</a>
+            {% else %}
+              <a href="{{ url_for('main_bp.dashboard') }}">Dashboard</a>
+            {% endif %}
+
+            <div class="user-mini-card">
+              {% if current_user.profile_picture %}
+              <img
+                src="{{ url_for('static', filename='uploads/' + current_user.profile_picture) }}"
+                alt="Profile"
+                class="nav-profile-pic"
+              />
+              {% endif %}
+              <span>{{ current_user.username }}</span>
+              <span class="role-badge">{{ current_user.role|capitalize }}</span>
+            </div>
+
+            <form action="{{ url_for('auth_bp.logout') }}" method="POST" style="display: inline;">
+              <button type="submit" class="logout-btn">Logout</button>
+            </form>
+          {% else %}
+            <a href="{{ url_for('auth_bp.login') }}">Login</a>
+            <a href="{{ url_for('auth_bp.register') }}" class="register-btn">Register</a>
+          {% endif %}
+        </div>
+      </div>
+    </nav>
+
+    <main class="container">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>
+===== C:\Users\Msys\Desktop\Training\week9\Student Management Dashboard - Pro Edition\app\templates\courses.html ===== 
+{% extends "base.html" %}
+{% block title %}Courses{% endblock %}
+
+{% block content %}
+<div class="app-container">
+  <div class="course-student-card">
+    <div class="top-bar">
+      <h2>All Courses</h2>
+      <a class="btn" href="{{ url_for('course_page_bp.add_course') }}">Add Course</a>
+    </div>
+
+    <form method="GET" action="{{ url_for('course_page_bp.list_courses') }}" class="search-form" style="margin: 18px 0;">
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <input
+          type="text"
+          name="search"
+          placeholder="Search by name or course code"
+          value="{{ search }}"
+          style="flex: 1; min-width: 220px;"
+        />
+        <button type="submit" class="btn">Search</button>
+
+        {% if search %}
+        <a class="btn secondary-btn" href="{{ url_for('course_page_bp.list_courses') }}">Clear</a>
+        {% endif %}
+      </div>
+    </form>
+    {% if courses %}
+    <table class="student-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Code</th>
+          <th>Description</th>
+          <th>Students Count</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for course in courses %}
+        <tr>
+          <td data-label="Name">{{ course.name }}</td>
+          <td data-label="Code">{{ course.code }}</td>
+          <td data-label="Description">{{ course.description or "-" }}</td>
+          <td data-label="Students Count">{{ course.students|length }}</td>
+          <td data-label="Actions">
+            <a class="btn" href="{{ url_for('course_page_bp.edit_course', course_id=course.id) }}">Edit</a>
+
+            <form
+              method="POST"
+              action="{{ url_for('course_page_bp.remove_course', course_id=course.id) }}"
+              style="display:inline;"
+              onsubmit="return confirm('Delete this course?');"
+            >
+              <button type="submit" class="btnDelete danger-btn">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted">No courses found.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+===== C:\Users\Msys\Desktop\Training\week9\Student Management Dashboard - Pro Edition\app\templates\dashboard.html ===== 
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="home">
+  <div class="glass-card home-content">
+    <h1>Dashboard</h1>
+    <p>Welcome, {{ current_user.username }}!</p>
+    <p>Your email: {{ current_user.email }}</p>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>{{ stats.students_count }}</h3>
+        <p>Students</p>
+      </div>
+      <div class="stat-card">
+        <h3>{{ stats.courses_count }}</h3>
+        <p>Courses</p>
+      </div>
+      {% if current_user.is_admin %}
+      <div class="stat-card">
+        <h3>{{ stats.users_count }}</h3>
+        <p>Users</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="dashboard-actions">
+      <a class="dashboard-action-btn" href="{{ url_for('student_page_bp.list_students') }}">
+        <span class="dashboard-action-icon">🎓</span>
+        <span class="dashboard-action-text">
+          <strong>Students</strong>
+          <small>Manage all students</small>
+        </span>
+      </a>
+
+      <a class="dashboard-action-btn" href="{{ url_for('course_page_bp.list_courses') }}">
+        <span class="dashboard-action-icon">📘</span>
+        <span class="dashboard-action-text">
+          <strong>Courses</strong>
+          <small>Manage all courses</small>
+        </span>
+      </a>
+
+      {% if current_user.is_admin %}
+      <a class="dashboard-action-btn" href="{{ url_for('user_page_bp.list_users') }}">
+        <span class="dashboard-action-icon">👤</span>
+        <span class="dashboard-action-text">
+          <strong>Users</strong>
+          <small>Manage system users</small>
+        </span>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+===== C:\Users\Msys\Desktop\Training\week9\Student Management Dashboard - Pro Edition\app\templates\edit_course.html ===== 
+{% extends "base.html" %}
+{% block title %}Edit Course{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <h2>Edit Course</h2>
+
+    {% if error %}
+    <div class="error-msg">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST">
+      <div class="form-grid">
+        <input type="text" name="name" value="{{ course.name }}" placeholder="Course name" required />
+        <input type="text" name="code" value="{{ course.code }}" placeholder="Course code" required />
+        <textarea name="description" placeholder="Course description (optional)">{{ course.description or '' }}</textarea>
+        <button type="submit">Update Course</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+===== C:\Users\Msys\Desktop\Training\week9\Student Management Dashboard - Pro Edition\app\templates\edit_student.html ===== 
+{% extends "base.html" %}
+{% block title %}Edit Student{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <h2>Edit Student</h2>
+
+    {% if error %}
+    <div class="error-msg">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST">
+      <div class="form-grid">
+        <input type="text" name="name" value="{{ student.name }}" placeholder="Enter student name" required />
+        <input type="text" value="{{ student.student_id }}" disabled />
+
+        <div class="courses-box">
+          <label class="courses-label">Enrolled Courses</label>
+
+          {% for course in courses %}
+          <div class="course-option">
+            <label>
+              <input
+                type="checkbox"
+                name="course_ids"
+                value="{{ course.id }}"
+                {% if course in student.courses %}checked{% endif %}
+              />
+              {{ course.name }} ({{ course.code }})
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+
+        <button type="submit">Update Student</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+===== C:\Users\Msys\Desktop\Training\week9\Student Management Dashboard - Pro Edition\app\templates\edit_user.html ===== 
+{% extends "base.html" %}
+{% block title %}Edit User{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <h2>Edit User</h2>
+
+    {% if error %}
+    <div class="error-msg">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data">
+      <div class="form-grid">
+        <input type="text" name="username" value="{{ user.username }}" placeholder="Username" required />
+        <input type="email" name="email" value="{{ user.email }}" placeholder="Email" required />
+
+        <select name="role" required>
+          {% for role in roles %}
+          <option value="{{ role }}" {% if user.role == role %}selected{% endif %}>{{ role|capitalize }}</option>
+          {% endfor %}
+        </select>
+
+        <input type="password" name="password" placeholder="New password (optional)" />
+        <input type="file" name="profile_picture" accept="image/*" />
+        <button type="submit">Update User</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+
+===== C:\Users\Msys\Desktop\Training\week9\Student Management Dashboard - Pro Edition\app\templates\home.html ===== 
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="home">
+  <div class="glass-card home-content">
+    <h1>Welcome to Flask Student Management Dashboard</h1>
+    <p>
+      A full Flask capstone project with authentication, student and course management,
+      HTML pages, Jinja templates, and REST API endpoints.
+    </p>
+
+    {% if current_user.is_authenticated %}
+      <div class="action-links">
+        {% if current_user.is_student %}
+          <a class="btn" href="{{ url_for('student_page_bp.my_courses') }}">My Courses</a>
+        {% else %}
+          <a class="btn" href="{{ url_for('main_bp.dashboard') }}">Go to Dashboard</a>
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="action-links">
+        <a class="btn" href="{{ url_for('auth_bp.login') }}">Login</a>
+        <a class="btn secondary-btn" href="{{ url_for('auth_bp.register') }}">Register</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+===== C:\Users\Msys\Desktop\Training\week9\Student Management Dashboard - Pro Edition\app\templates\login.html ===== 
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <h1>Login</h1>
+
+    <form method="POST">
+      <div class="form-grid">
+        <input type="email" name="email" placeholder="Email" required />
+        <input type="password" name="password" placeholder="Password" required />
+        <button type="submit">Login</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+===== C:\Users\Msys\Desktop\Training\week9\Student Management Dashboard - Pro Edition\app\templates\my_courses.html ===== 
+{% extends "base.html" %}
+{% block title %}My Courses{% endblock %}
+
+{% block content %}
+<div class="home">
+  <div class="glass-card">
+    <h2>My Courses</h2>
+
+    <div class="detail-item">
+      <span>Name</span>
+      <p>{{ student.name }}</p>
+    </div>
+
+    <div class="detail-item">
+      <span>Student ID</span>
+      <p>{{ student.student_id }}</p>
+    </div>
+
+    <div class="detail-item">
+      <span>Enrolled Courses</span>
+      {% if student.courses %}
+      <div style="display: grid; gap: 12px; margin-top: 12px;">
+        {% for course in student.courses %}
+        <div class="stat-card" style="text-align: left;">
+          <h3 style="margin-bottom: 6px;">{{ course.name }}</h3>
+          <p><strong>Code:</strong> {{ course.code }}</p>
+          <p><strong>Description:</strong> {{ course.description or "No description available." }}</p>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p>No courses enrolled yet.</p>
+      {% endif %}
+    </div>
+
+    <a class="btn secondary-btn" href="{{ url_for('main_bp.home') }}" style="margin-top: 20px;">
+      Back to Home
+    </a>
+  </div>
+</div>
+{% endblock %}
+===== C:\Users\Msys\Desktop\Training\week9\Student Management Dashboard - Pro Edition\app\templates\register.html ===== 
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <h1>Register</h1>
+    <p style="margin-bottom: 16px; opacity: 0.85;">
+      Use your An-Najah email:
+    </p>
+
+    <form method="POST" enctype="multipart/form-data">
+      <div class="form-grid">
+        <input type="text" name="name" placeholder="Full Name" required />
+        <input type="text" name="username" placeholder="Username" required />
+        <input type="email" name="email" placeholder="Email" required />
+        <input type="password" name="password" placeholder="Password" required />
+        <input type="password" name="confirm_password" placeholder="Confirm Password" required />
+        <input type="file" name="profile_picture" accept="image/*" />
+        <button type="submit">Register</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+===== C:\Users\Msys\Desktop\Training\week9\Student Management Dashboard - Pro Edition\app\templates\students.html ===== 
+{% extends "base.html" %}
+{% block title %}Students{% endblock %}
+
+{% block content %}
+<div class="app-container">
+  <div class="course-student-card">
+    <div class="top-bar">
+      <h2>All Students</h2>
+      <a class="btn" href="{{ url_for('student_page_bp.add_student') }}">Add Student</a>
+    </div>
+
+    <form method="GET" action="{{ url_for('student_page_bp.list_students') }}" class="search-form" style="margin: 18px 0;">
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <input
+          type="text"
+          name="search"
+          placeholder="Search by name or student ID"
+          value="{{ search }}"
+          style="flex: 1; min-width: 220px;"
+        />
+        <button type="submit" class="btn">Search</button>
+
+        {% if search %}
+        <a class="btn secondary-btn" href="{{ url_for('student_page_bp.list_students') }}">Clear</a>
+        {% endif %}
+      </div>
+    </form>
+
+    {% if students %}
+    <table class="student-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Student ID</th>
+          <th>Courses Count</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for student in students %}
+        <tr>
+          <td data-label="Name">{{ student.name }}</td>
+          <td data-label="Student ID">{{ student.student_id }}</td>
+          <td data-label="Courses Count">{{ student.courses_count }}</td>
+          <td data-label="Actions">
+            <a class="btn secondary-btn" href="{{ url_for('student_page_bp.student_details', student_id=student.student_id) }}">View</a>
+            <a class="btn" href="{{ url_for('student_page_bp.edit_student', student_id=student.student_id) }}">Edit</a>
+
+            <form method="POST" action="{{ url_for('student_page_bp.remove_student', student_id=student.student_id) }}" style="display: inline" onsubmit="return confirm('Are you sure you want to delete this student?');">
+              <button type="submit" class="btnDelete danger-btn">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="pagination" style="margin-top: 20px; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;">
+      {% if pagination.has_prev %}
+      <a
+        class="btn secondary-btn"
+        href="{{ url_for('student_page_bp.list_students', page=pagination.prev_num, search=search) }}"
+      >
+        Previous
+      </a>
+      {% endif %}
+
+      <span>Page {{ pagination.page }} of {{ pagination.pages or 1 }}</span>
+
+      {% if pagination.has_next %}
+      <a
+        class="btn secondary-btn"
+        href="{{ url_for('student_page_bp.list_students', page=pagination.next_num, search=search) }}"
+      >
+        Next
+      </a>
+      {% endif %}
+    </div>
+    {% else %}
+    <p class="muted">No students found.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+===== C:\Users\Msys\Desktop\Training\week9\Student Management Dashboard - Pro Edition\app\templates\student_details.html ===== 
+{% extends "base.html" %}
+{% block title %}Student Details{% endblock %}
+
+{% block content %}
+<div class="home">
+  <div class="glass-card">
+    <h2>Student Details</h2>
+
+    <div class="detail-item">
+      <span>Name</span>
+      <p>{{ student.name }}</p>
+    </div>
+
+    <div class="detail-item">
+      <span>Student ID</span>
+      <p>{{ student.student_id }}</p>
+    </div>
+
+
+    <div class="detail-item">
+      <span>Enrolled Courses</span>
+      {% if student.courses %}
+      <ul>
+        {% for course in student.courses %}
+        <li>{{ course.name }} ({{ course.code }})</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p>No courses enrolled yet.</p>
+      {% endif %}
+    </div>
+
+    <a class="btn" href="{{ url_for('student_page_bp.edit_student', student_id=student.student_id) }}">Edit</a>
+
+    <form method="POST" action="{{ url_for('student_page_bp.remove_student', student_id=student.student_id) }}" style="display: inline" onsubmit="return confirm('Delete this student?');">
+      <button class="btn danger-btn">Delete</button>
+    </form>
+
+    <a class="btn secondary-btn" href="{{ url_for('student_page_bp.list_students') }}" style="margin-top: 20px;">
+      Back to Students
+    </a>
+  </div>
+</div>
+{% endblock %}
+===== C:\Users\Msys\Desktop\Training\week9\Student Management Dashboard - Pro Edition\app\templates\users.html ===== 
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+
+{% block content %}
+<div class="app-container">
+  <div class="course-student-card">
+    <div class="top-bar">
+      <h2>All Users</h2>
+      <a class="btn" href="{{ url_for('user_page_bp.add_user') }}">Add User</a>
+    </div>
+
+    <form method="GET" class="search-form" style="margin: 18px 0;">
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <input type="text" name="search" placeholder="Search by username, email, or role" value="{{ search }}" style="flex: 1; min-width: 220px;" />
+        <button type="submit" class="btn">Search</button>
+        {% if search %}
+        <a class="btn secondary-btn" href="{{ url_for('user_page_bp.list_users') }}">Clear</a>
+        {% endif %}
+      </div>
+    </form>
+
+    {% if users %}
+    <table class="student-table">
+      <thead>
+        <tr>
+          <th>Profile</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr>
+          <td>
+            {% if user.profile_picture %}
+            <img src="{{ url_for('static', filename='uploads/' + user.profile_picture) }}" alt="Profile" class="table-profile-pic" />
+            {% else %}
+            -
+            {% endif %}
+          </td>
+          <td>{{ user.username }}</td>
+          <td>{{ user.email }}</td>
+          <td><span class="role-badge">{{ user.role|capitalize }}</span></td>
+          <td>
+            <a class="btn secondary-btn" href="{{ url_for('user_page_bp.user_details', user_id=user.id) }}">View</a>
+            <a class="btn" href="{{ url_for('user_page_bp.edit_user', user_id=user.id) }}">Edit</a>
+            {% if user.id != current_user.id %}
+            <form method="POST" action="{{ url_for('user_page_bp.remove_user', user_id=user.id) }}" style="display:inline;" onsubmit="return confirm('Delete this user?');">
+              <button type="submit" class="btnDelete danger-btn">Delete</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="pagination" style="margin-top: 20px; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;">
+      {% if pagination.has_prev %}
+      <a class="btn secondary-btn" href="{{ url_for('user_page_bp.list_users', page=pagination.prev_num, search=search) }}">Previous</a>
+      {% endif %}
+
+      <span>Page {{ pagination.page }} of {{ pagination.pages or 1 }}</span>
+
+      {% if pagination.has_next %}
+      <a class="btn secondary-btn" href="{{ url_for('user_page_bp.list_users', page=pagination.next_num, search=search) }}">Next</a>
+      {% endif %}
+    </div>
+    {% else %}
+    <p class="muted">No users found.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+
+===== C:\Users\Msys\Desktop\Training\week9\Student Management Dashboard - Pro Edition\app\templates\user_details.html ===== 
+{% extends "base.html" %}
+{% block title %}User Details{% endblock %}
+
+{% block content %}
+<div class="home">
+  <div class="glass-card">
+    <h2>User Details</h2>
+
+    {% if user.profile_picture %}
+    <div style="margin-bottom: 20px;">
+      <img src="{{ url_for('static', filename='uploads/' + user.profile_picture) }}" alt="Profile" class="detail-profile-pic" />
+    </div>
+    {% endif %}
+
+    <div class="detail-item">
+      <span>Username</span>
+      <p>{{ user.username }}</p>
+    </div>
+
+    <div class="detail-item">
+      <span>Email</span>
+      <p>{{ user.email }}</p>
+    </div>
+
+    <div class="detail-item">
+      <span>Role</span>
+      <p>{{ user.role|capitalize }}</p>
+    </div>
+
+    <a class="btn" href="{{ url_for('user_page_bp.edit_user', user_id=user.id) }}">Edit</a>
+  </div>
+</div>
+{% endblock %}
+
+

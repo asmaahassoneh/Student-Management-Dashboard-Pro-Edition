@@ -23,25 +23,9 @@ from app.services.user_service import (
 from app.utils.decorators import admin_required
 from app.utils.file_helpers import save_profile_picture
 from app.utils.validators import normalize_email, normalize_text, validate_user_form
+from app.utils.role_helpers import detect_role_and_student_id
 
 user_page_bp = Blueprint("user_page_bp", __name__, url_prefix="/users")
-
-
-def detect_role_and_student_id(email):
-    email = normalize_email(email)
-
-    if email.endswith("@stu.najah.edu"):
-        local_part = email.split("@")[0]
-
-        if not local_part.startswith("s") or not local_part[1:].isdigit():
-            return None, None, "Invalid student email format."
-
-        return User.ROLE_STUDENT, local_part[1:], None
-
-    if email.endswith("@najah.edu"):
-        return User.ROLE_INSTRUCTOR, None, None
-
-    return None, None, "Please use a valid An-Najah email address."
 
 
 @user_page_bp.route("")
