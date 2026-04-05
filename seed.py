@@ -9,35 +9,45 @@ from app.utils.role_helpers import extract_student_id
 def seed():
     print("🌱 Seeding database...")
 
-    admin_email = "admin@najah.edu"
-    admin = User.query.filter_by(email=admin_email).first()
+    admin = User.query.filter(
+        (User.email == "admin@gmail.com") | (User.username == "admin")
+    ).first()
 
     if not admin:
         admin = User(
             username="admin",
-            email=admin_email,
+            email="admin@gmail.com",
             role=User.ROLE_ADMIN,
+            profile_picture="admin.png",
         )
         admin.set_password("Admin1234")
         db.session.add(admin)
         print("✅ Admin created")
     else:
-        print("ℹ️ Admin already exists")
+        admin.email = "admin@gmail.com"
+        admin.role = User.ROLE_ADMIN
+        admin.profile_picture = "admin.png"
+        print("ℹ️ Admin already exists -> updated")
 
-    instructor_email = "instructor1@najah.edu"
-    instructor = User.query.filter_by(email=instructor_email).first()
+    instructor = User.query.filter(
+        (User.email == "instructor1@najah.edu") | (User.username == "instructor1")
+    ).first()
 
     if not instructor:
         instructor = User(
             username="instructor1",
-            email=instructor_email,
+            email="instructor1@najah.edu",
             role=User.ROLE_INSTRUCTOR,
+            profile_picture="instructor.jpg",
         )
         instructor.set_password("Instructor123")
         db.session.add(instructor)
         print("✅ Instructor created")
     else:
-        print("ℹ️ Instructor already exists")
+        instructor.email = "instructor1@najah.edu"
+        instructor.role = User.ROLE_INSTRUCTOR
+        instructor.profile_picture = "instructor.jpg"
+        print("ℹ️ Instructor already exists -> updated")
 
     db.session.commit()
 
@@ -56,69 +66,77 @@ def seed():
             db.session.add(course)
             print(f"✅ Course created: {c['name']}")
         else:
-            print(f"ℹ️ Course exists: {c['name']}")
+            course.name = c["name"]
+            course.description = c["description"]
+            print(f"ℹ️ Course exists: {c['name']} -> updated")
         courses.append(course)
 
     db.session.commit()
 
     students_data = [
         {
-            "name": "Asmaa Hassoneh",
-            "username": "asmaa",
-            "email": "s12110001@stu.najah.edu",
-            "password": "Asmaa1234",
-        },
-        {
             "name": "Ali Ahmad",
             "username": "ali",
             "email": "s12110002@stu.najah.edu",
             "password": "Ali12345",
+            "profile_picture": "ali.jpg",
         },
         {
             "name": "Sara Khaled",
             "username": "sara",
             "email": "s12110003@stu.najah.edu",
             "password": "Sara12345",
+            "profile_picture": "sara.webp",
         },
     ]
 
     for s in students_data:
-        existing_user = User.query.filter_by(email=s["email"]).first()
-
-        if existing_user:
-            print(f"ℹ️ Student user exists: {s['name']}")
-            continue
-
         student_id = extract_student_id(s["email"])
 
         if not student_id:
             print(f"❌ Invalid student email: {s['email']}")
             continue
 
-        user = User(
-            username=s["username"],
-            email=s["email"],
-            role=User.ROLE_STUDENT,
-        )
-        user.set_password(s["password"])
+        user = User.query.filter(
+            (User.email == s["email"]) | (User.username == s["username"])
+        ).first()
 
-        db.session.add(user)
-        db.session.flush()
+        if not user:
+            user = User(
+                username=s["username"],
+                email=s["email"],
+                role=User.ROLE_STUDENT,
+                profile_picture=s["profile_picture"],
+            )
+            user.set_password(s["password"])
+            db.session.add(user)
+            db.session.flush()
+            print(f"✅ Student user created: {s['name']}")
+        else:
+            user.email = s["email"]
+            user.username = s["username"]
+            user.role = User.ROLE_STUDENT
+            user.profile_picture = s["profile_picture"]
+            print(f"ℹ️ Student user exists: {s['name']} -> updated")
 
-        student = Student(
-            name=s["name"],
-            student_id=student_id,
-            user_id=user.id,
-        )
+        student = Student.query.filter_by(student_id=student_id).first()
+
+        if not student:
+            student = Student(
+                name=s["name"],
+                student_id=student_id,
+                user_id=user.id,
+            )
+            db.session.add(student)
+            print(f"✅ Student profile created: {s['name']}")
+        else:
+            student.name = s["name"]
+            student.user_id = user.id
+            print(f"ℹ️ Student profile exists: {s['name']} -> updated")
 
         student.courses = courses[:2]
 
-        db.session.add(student)
-
-        print(f"✅ Student created: {s['name']}")
-
     db.session.commit()
-
     print("🎉 Seeding completed successfully!")
 
 
@@ -127,4 +145,3 @@ if __name__ == "__main__":
 
     with app.app_context():
         db.create_all()
-        seed()
