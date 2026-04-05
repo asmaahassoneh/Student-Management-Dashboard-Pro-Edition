@@ -11,14 +11,18 @@
     </p>
 
     {% if current_user.is_authenticated %}
-    <div class="action-links">
-      <a class="btn" href="{{ url_for('main_bp.dashboard') }}">Go to Dashboard</a>
-    </div>
+      <div class="action-links">
+        {% if current_user.is_student %}
+          <a class="btn" href="{{ url_for('student_page_bp.my_courses') }}">My Courses</a>
+        {% else %}
+          <a class="btn" href="{{ url_for('main_bp.dashboard') }}">Go to Dashboard</a>
+        {% endif %}
+      </div>
     {% else %}
-    <div class="action-links">
-      <a class="btn" href="{{ url_for('auth_bp.login') }}">Login</a>
-      <a class="btn secondary-btn" href="{{ url_for('auth_bp.register') }}">Register</a>
-    </div>
+      <div class="action-links">
+        <a class="btn" href="{{ url_for('auth_bp.login') }}">Login</a>
+        <a class="btn secondary-btn" href="{{ url_for('auth_bp.register') }}">Register</a>
+      </div>
     {% endif %}
   </div>
 </div>

@@ -8,22 +8,41 @@ from flask import (
     url_for,
     current_app,
 )
-from flask_login import login_required
+from flask_login import login_required, current_user
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.extensions import db
 from app.models.course import Course
 from app.models.student import Student
+from app.models.user import User
 from app.services.student_service import (
-    create_student,
     delete_student,
     get_courses_by_ids,
     get_student_by_student_id,
     update_student,
 )
 from app.utils.decorators import admin_or_instructor_required
-from app.utils.validators import normalize_student_id, validate_student_form
+from app.utils.validators import (
+    normalize_email,
+    normalize_text,
+    validate_student_form,
+    validate_user_form,
+)
 
 student_page_bp = Blueprint("student_page_bp", __name__, url_prefix="/students")
+
+
+def extract_student_id_from_email(email):
+    email = normalize_email(email)
+
+    if not email.endswith("@stu.najah.edu"):
+        return None
+
+    local_part = email.split("@")[0]
+    if not local_part.startswith("s") or not local_part[1:].isdigit():
+        return None
+
+    return local_part[1:]
 
 
 @student_page_bp.route("")
@@ -51,37 +70,88 @@ def list_students():
     )
 
 
+@student_page_bp.route("/my-courses")
+@login_required
+def my_courses():
+    if not current_user.is_student:
+        flash("This page is only available for student accounts.", "error")
+        return redirect(url_for("main_bp.dashboard"))
+
+    student = current_user.student_profile
+    if student is None:
+        flash("No student profile is linked to this account.", "error")
+        return redirect(url_for("main_bp.home"))
+
+    return render_template("my_courses.html", student=student)
+
+
 @student_page_bp.route("/add", methods=["GET", "POST"])
 @login_required
 @admin_or_instructor_required
 def add_student():
     courses = Course.query.order_by(Course.name.asc()).all()
 
-    form_data = {"name": "", "student_id": "", "course_ids": []}
+    form_data = {
+        "name": "",
+        "username": "",
+        "email": "",
+        "course_ids": [],
+    }
 
     if request.method == "GET":
         return render_template(
-            "add_student.html", error=None, form_data=form_data, courses=courses
+            "add_student.html",
+            error=None,
+            form_data=form_data,
+            courses=courses,
         )
 
     form_data = {
         "name": request.form.get("name", "").strip(),
-        "student_id": request.form.get("student_id", "").strip(),
+        "username": request.form.get("username", "").strip(),
+        "email": request.form.get("email", "").strip(),
         "course_ids": request.form.getlist("course_ids"),
     }
 
+    password = request.form.get("password", "")
+    confirm_password = request.form.get("confirm_password", "")
+
     error = validate_student_form(
-        form_data["name"], form_data["student_id"], form_data["course_ids"]
+        form_data["name"], "12345678", form_data["course_ids"]
     )
-    if error:
+    if error and "Student ID" not in error:
         return render_template(
-            "add_student.html", error=error, form_data=form_data, courses=courses
+            "add_student.html",
+            error=error,
+            form_data=form_data,
+            courses=courses,
         )
 
-    normalized_student_id = normalize_student_id(form_data["student_id"])
-    existing_student_id = Student.query.filter_by(
-        student_id=normalized_student_id
-    ).first()
+    user_error = validate_user_form(
+        form_data["username"],
+        form_data["email"],
+        password,
+        confirm_password,
+        role=User.ROLE_STUDENT,
+    )
+    if user_error:
+        return render_template(
+            "add_student.html",
+            error=user_error,
+            form_data=form_data,
+            courses=courses,
+        )
+
+    student_id = extract_student_id_from_email(form_data["email"])
+    if not student_id:
+        return render_template(
+            "add_student.html",
+            error="Student email must be in this format: sXXXXXXXX@stu.najah.edu",
+            form_data=form_data,
+            courses=courses,
+        )
+
+    existing_student_id = Student.query.filter_by(student_id=student_id).first()
     if existing_student_id:
         return render_template(
             "add_student.html",
@@ -90,22 +160,60 @@ def add_student():
             courses=courses,
         )
 
-    selected_courses = get_courses_by_ids(form_data["course_ids"])
-    if not selected_courses:
+    existing_username = User.query.filter_by(
+        username=normalize_text(form_data["username"])
+    ).first()
+    if existing_username:
         return render_template(
             "add_student.html",
-            error="Please select valid courses.",
+            error="Username already exists.",
             form_data=form_data,
             courses=courses,
         )
 
+    existing_email = User.query.filter_by(
+        email=normalize_email(form_data["email"])
+    ).first()
+    if existing_email:
+        return render_template(
+            "add_student.html",
+            error="Email already exists.",
+            form_data=form_data,
+            courses=courses,
+        )
+
+    selected_courses = get_courses_by_ids(form_data["course_ids"])
+
     try:
-        student = create_student(form_data, selected_courses)
-        flash("Student added successfully.", "success")
+        user = User(
+            username=normalize_text(form_data["username"]),
+            email=normalize_email(form_data["email"]),
+            role=User.ROLE_STUDENT,
+        )
+        user.set_password(password)
+
+        db.session.add(user)
+        db.session.flush()
+
+        student = Student(
+            name=normalize_text(form_data["name"]),
+            student_id=student_id,
+            user_id=user.id,
+        )
+        student.courses = selected_courses
+
+        db.session.add(student)
+        db.session.commit()
+
+        flash(
+            f"Student added successfully. Login email: {user.email}",
+            "success",
+        )
         return redirect(
             url_for("student_page_bp.student_details", student_id=student.student_id)
         )
     except SQLAlchemyError:
+        db.session.rollback()
         flash("Something went wrong while saving the student.", "error")
         return render_template(
             "add_student.html",
@@ -121,6 +229,15 @@ def student_details(student_id):
     student = get_student_by_student_id(student_id)
     if student is None:
         abort(404)
+
+    if current_user.is_student:
+        if current_user.student_profile is None:
+            flash("No student profile is linked to this account.", "error")
+            return redirect(url_for("main_bp.home"))
+
+        if current_user.student_profile.student_id != student.student_id:
+            abort(403)
+
     return render_template("student_details.html", student=student)
 
 
@@ -149,13 +266,6 @@ def edit_student(student_id):
         )
 
     selected_courses = get_courses_by_ids(selected_course_ids)
-    if not selected_courses:
-        return render_template(
-            "edit_student.html",
-            student=student,
-            courses=courses,
-            error="Please select valid courses.",
-        )
 
     data = {"name": name}
 

@@ -46,9 +46,11 @@
           <td>
             <a class="btn secondary-btn" href="{{ url_for('user_page_bp.user_details', user_id=user.id) }}">View</a>
             <a class="btn" href="{{ url_for('user_page_bp.edit_user', user_id=user.id) }}">Edit</a>
-            <form method="POST" action="{{ url_for('user_page_bp.remove_user', user_id=user.id) }}" style="display: inline;" onsubmit="return confirm('Delete this user?');">
+            {% if user.id != current_user.id %}
+            <form method="POST" action="{{ url_for('user_page_bp.remove_user', user_id=user.id) }}" style="display:inline;" onsubmit="return confirm('Delete this user?');">
               <button type="submit" class="btnDelete danger-btn">Delete</button>
             </form>
+            {% endif %}
           </td>
         </tr>
         {% endfor %}

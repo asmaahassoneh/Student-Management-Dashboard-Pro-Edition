@@ -1,16 +1,18 @@
 from flask import (
     Blueprint,
     abort,
+    current_app,
     flash,
     redirect,
     render_template,
     request,
     url_for,
-    current_app,
 )
-from flask_login import login_required, current_user
+from flask_login import current_user, login_required
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.extensions import db
+from app.models.student import Student
 from app.models.user import User
 from app.services.user_service import (
     create_user,
@@ -23,6 +25,23 @@ from app.utils.file_helpers import save_profile_picture
 from app.utils.validators import normalize_email, normalize_text, validate_user_form
 
 user_page_bp = Blueprint("user_page_bp", __name__, url_prefix="/users")
+
+
+def detect_role_and_student_id(email):
+    email = normalize_email(email)
+
+    if email.endswith("@stu.najah.edu"):
+        local_part = email.split("@")[0]
+
+        if not local_part.startswith("s") or not local_part[1:].isdigit():
+            return None, None, "Invalid student email format."
+
+        return User.ROLE_STUDENT, local_part[1:], None
+
+    if email.endswith("@najah.edu"):
+        return User.ROLE_INSTRUCTOR, None, None
+
+    return None, None, "Please use a valid An-Najah email address."
 
 
 @user_page_bp.route("")
@@ -43,7 +62,10 @@ def list_users():
 
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     return render_template(
-        "users.html", users=pagination.items, pagination=pagination, search=search
+        "users.html",
+        users=pagination.items,
+        pagination=pagination,
+        search=search,
     )
 
 
@@ -51,18 +73,16 @@ def list_users():
 @login_required
 @admin_required
 def add_user():
-    form_data = {"username": "", "email": "", "role": User.ROLE_STUDENT}
+    form_data = {"username": "", "email": "", "name": ""}
 
     if request.method == "GET":
-        return render_template(
-            "add_user.html", error=None, form_data=form_data, roles=User.ROLES
-        )
+        return render_template("add_user.html", error=None, form_data=form_data)
 
     username = request.form.get("username", "").strip()
+    name = request.form.get("name", "").strip()
     email = request.form.get("email", "").strip()
     password = request.form.get("password", "")
     confirm_password = request.form.get("confirm_password", "")
-    role = request.form.get("role", User.ROLE_STUDENT)
 
     profile_picture_file = request.files.get("profile_picture")
     profile_picture = save_profile_picture(
@@ -71,12 +91,27 @@ def add_user():
         current_app.config["ALLOWED_IMAGE_EXTENSIONS"],
     )
 
-    form_data = {"username": username, "email": email, "role": role}
+    form_data = {"username": username, "email": email, "name": name}
 
-    error = validate_user_form(username, email, password, confirm_password, role=role)
+    error = validate_user_form(
+        username,
+        email,
+        password,
+        confirm_password,
+        role=User.ROLE_STUDENT,
+    )
     if error:
+        return render_template("add_user.html", error=error, form_data=form_data)
+
+    role, extracted_student_id, role_error = detect_role_and_student_id(email)
+    if role_error:
+        return render_template("add_user.html", error=role_error, form_data=form_data)
+
+    if role == User.ROLE_STUDENT and not name:
         return render_template(
-            "add_user.html", error=error, form_data=form_data, roles=User.ROLES
+            "add_user.html",
+            error="Full name is required for student accounts.",
+            form_data=form_data,
         )
 
     existing_username = User.query.filter_by(username=normalize_text(username)).first()
@@ -85,7 +120,6 @@ def add_user():
             "add_user.html",
             error="Username already exists.",
             form_data=form_data,
-            roles=User.ROLES,
         )
 
     existing_email = User.query.filter_by(email=normalize_email(email)).first()
@@ -94,11 +128,21 @@ def add_user():
             "add_user.html",
             error="Email already exists.",
             form_data=form_data,
-            roles=User.ROLES,
         )
 
+    if role == User.ROLE_STUDENT:
+        existing_student = Student.query.filter_by(
+            student_id=extracted_student_id
+        ).first()
+        if existing_student:
+            return render_template(
+                "add_user.html",
+                error="Student ID already exists.",
+                form_data=form_data,
+            )
+
     try:
-        create_user(
+        user = create_user(
             {
                 "username": username,
                 "email": email,
@@ -107,14 +151,24 @@ def add_user():
                 "profile_picture": profile_picture,
             }
         )
+
+        if role == User.ROLE_STUDENT:
+            student = Student(
+                name=name,
+                student_id=extracted_student_id,
+                user_id=user.id,
+            )
+            db.session.add(student)
+            db.session.commit()
+
         flash("User added successfully.", "success")
         return redirect(url_for("user_page_bp.list_users"))
     except SQLAlchemyError:
+        db.session.rollback()
         return render_template(
             "add_user.html",
             error="Database error occurred.",
             form_data=form_data,
-            roles=User.ROLES,
         )
 
 
@@ -138,7 +192,10 @@ def edit_user(user_id):
 
     if request.method == "GET":
         return render_template(
-            "edit_user.html", user=user, error=None, roles=User.ROLES
+            "edit_user.html",
+            user=user,
+            error=None,
+            roles=User.ROLES,
         )
 
     username = request.form.get("username", "").strip()
@@ -156,11 +213,18 @@ def edit_user(user_id):
         )
 
     error = validate_user_form(
-        username, email, password=password, partial=True, role=role
+        username,
+        email,
+        password=password,
+        partial=True,
+        role=role,
     )
     if error:
         return render_template(
-            "edit_user.html", user=user, error=error, roles=User.ROLES
+            "edit_user.html",
+            user=user,
+            error=error,
+            roles=User.ROLES,
         )
 
     existing_username = User.query.filter_by(username=normalize_text(username)).first()
@@ -175,7 +239,10 @@ def edit_user(user_id):
     existing_email = User.query.filter_by(email=normalize_email(email)).first()
     if existing_email and existing_email.id != user.id:
         return render_template(
-            "edit_user.html", user=user, error="Email already exists.", roles=User.ROLES
+            "edit_user.html",
+            user=user,
+            error="Email already exists.",
+            roles=User.ROLES,
         )
 
     data = {"username": username, "email": email, "role": role}

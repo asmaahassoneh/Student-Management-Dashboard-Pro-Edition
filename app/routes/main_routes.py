@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
 
 from app.models.course import Course
@@ -16,6 +16,10 @@ def home():
 @main_bp.route("/dashboard")
 @login_required
 def dashboard():
+    if current_user.is_student:
+        flash("Students do not have access to the management dashboard.", "error")
+        return redirect(url_for("main_bp.home"))
+
     stats = {
         "students_count": Student.query.count(),
         "courses_count": Course.query.count(),

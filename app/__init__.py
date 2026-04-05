@@ -62,22 +62,14 @@ def create_app(config_class=Config):
     @app.errorhandler(403)
     def forbidden(error):
         if request.path.startswith("/api/"):
-            return jsonify({"success": False, "error": "Access denied."}), 403
+            return jsonify({"success": False, "error": "Admin access required."}), 403
         return render_template("403.html"), 403
 
     with app.app_context():
         db.create_all()
 
-        admin_email = "admin@gmail.com"
-        existing_admin = User.query.filter_by(email=admin_email).first()
-        if not existing_admin:
-            admin = User(
-                username="admin",
-                email=admin_email,
-                role=User.ROLE_ADMIN,
-            )
-            admin.set_password("Admin1234")
-            db.session.add(admin)
-            db.session.commit()
+        from seed import seed
+
+        seed()
 
     return app

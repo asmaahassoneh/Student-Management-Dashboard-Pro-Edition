@@ -10,10 +10,52 @@
     <div class="error-msg">{{ error }}</div>
     {% endif %}
 
+    <p style="margin-bottom: 16px; opacity: 0.85;">
+      Student email must be like:
+      <strong>s12112458@stu.najah.edu</strong>
+      <br />
+      Student ID will be extracted automatically from the email.
+    </p>
+
     <form method="POST" action="{{ url_for('student_page_bp.add_student') }}">
       <div class="form-grid">
-        <input type="text" name="name" placeholder="Enter student name" value="{{ form_data.name }}" required />
-        <input type="text" name="student_id" placeholder="Enter student ID" value="{{ form_data.student_id }}" required />
+        <input
+          type="text"
+          name="name"
+          placeholder="Enter student name"
+          value="{{ form_data.name }}"
+          required
+        />
+
+        <input
+          type="text"
+          name="username"
+          placeholder="Enter username"
+          value="{{ form_data.username }}"
+          required
+        />
+
+        <input
+          type="email"
+          name="email"
+          placeholder="Enter student email"
+          value="{{ form_data.email }}"
+          required
+        />
+
+        <input
+          type="password"
+          name="password"
+          placeholder="Enter password"
+          required
+        />
+
+        <input
+          type="password"
+          name="confirm_password"
+          placeholder="Confirm password"
+          required
+        />
 
         <div class="courses-box">
           <label class="courses-label">Select Courses</label>

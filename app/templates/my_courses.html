@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}My Courses{% endblock %}
+
+{% block content %}
+<div class="home">
+  <div class="glass-card">
+    <h2>My Courses</h2>
+
+    <div class="detail-item">
+      <span>Name</span>
+      <p>{{ student.name }}</p>
+    </div>
+
+    <div class="detail-item">
+      <span>Student ID</span>
+      <p>{{ student.student_id }}</p>
+    </div>
+
+    <div class="detail-item">
+      <span>Enrolled Courses</span>
+      {% if student.courses %}
+      <div style="display: grid; gap: 12px; margin-top: 12px;">
+        {% for course in student.courses %}
+        <div class="stat-card" style="text-align: left;">
+          <h3 style="margin-bottom: 6px;">{{ course.name }}</h3>
+          <p><strong>Code:</strong> {{ course.code }}</p>
+          <p><strong>Description:</strong> {{ course.description or "No description available." }}</p>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p>No courses enrolled yet.</p>
+      {% endif %}
+    </div>
+
+    <a class="btn secondary-btn" href="{{ url_for('main_bp.home') }}" style="margin-top: 20px;">
+      Back to Home
+    </a>
+  </div>
+</div>
+{% endblock %}

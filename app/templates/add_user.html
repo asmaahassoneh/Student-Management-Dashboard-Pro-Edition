@@ -10,17 +10,19 @@
     <div class="error-msg">{{ error }}</div>
     {% endif %}
 
+    <p style="margin-bottom: 16px; opacity: 0.85;">
+      Role is detected automatically from email:
+      <br>
+      <strong>Student:</strong> sXXXXXXX@stu.najah.edu
+      <br>
+      <strong>Instructor:</strong> name@najah.edu
+    </p>
+
     <form method="POST" enctype="multipart/form-data">
       <div class="form-grid">
         <input type="text" name="username" placeholder="Username" value="{{ form_data.username }}" required />
+        <input type="text" name="name" placeholder="Full Name (required for student accounts)" value="{{ form_data.name }}" />
         <input type="email" name="email" placeholder="Email" value="{{ form_data.email }}" required />
-
-        <select name="role" required>
-          {% for role in roles %}
-          <option value="{{ role }}" {% if form_data.role == role %}selected{% endif %}>{{ role|capitalize }}</option>
-          {% endfor %}
-        </select>
-
         <input type="password" name="password" placeholder="Password" required />
         <input type="password" name="confirm_password" placeholder="Confirm Password" required />
         <input type="file" name="profile_picture" accept="image/*" />
@@ -30,4 +32,3 @@
   </div>
 </div>
 {% endblock %}
-
