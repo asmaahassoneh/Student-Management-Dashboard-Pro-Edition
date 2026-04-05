@@ -125,65 +125,248 @@ Student Management Dashboard - Pro Edition/
 ```
 ------------------------------------------------------------------------
 
+# 📘 API & Database Documentation
+
 ## 🗃️ Database Schema
 
-### User
-- id (PK)
-- username (unique)
-- email (unique)
-- password_hash
-- role (admin, instructor, student)
-- profile_picture
+### 👤 User
 
-### Student
-- id (PK)
-- name
-- student_id (unique)
-- user_id (FK)
+| Field           | Type            | Description                  |
+| --------------- | --------------- | ---------------------------- |
+| id              | Integer (PK)    | Unique user ID               |
+| username        | String (unique) | Username                     |
+| email           | String (unique) | Email address                |
+| password_hash   | String          | Hashed password              |
+| role            | String          | admin / instructor / student |
+| profile_picture | String          | Image filename               |
 
-### Course
-- id (PK)
-- name (unique)
-- code (unique)
-- description
+---
 
-### student_courses
-- student_id (FK)
-- course_id (FK)
+### 🎓 Student
+
+| Field      | Type            | Description           |
+| ---------- | --------------- | --------------------- |
+| id         | Integer (PK)    | Unique ID             |
+| name       | String          | Full name             |
+| student_id | String (unique) | University student ID |
+| user_id    | Integer (FK)    | Linked user account   |
+
+---
+
+### 📘 Course
+
+| Field       | Type            | Description          |
+| ----------- | --------------- | -------------------- |
+| id          | Integer (PK)    | Unique ID            |
+| name        | String (unique) | Course name          |
+| code        | String (unique) | Course code          |
+| description | String          | Optional description |
+
+---
+
+### 🔗 student_courses (Many-to-Many)
+
+| Field      | Type             | Description       |
+| ---------- | ---------------- | ----------------- |
+| student_id | FK → students.id | Student reference |
+| course_id  | FK → courses.id  | Course reference  |
+
 
 ---
 
 ## 🌐 API Endpoints
 
-### Students
-GET /api/students  
-POST /api/students  
-GET /api/students/<id>  
-PUT /api/students/<id>  
-DELETE /api/students/<id>  
-POST /api/students/<id>/enroll  
-POST /api/students/<id>/unenroll  
+### 🎓 Students API
 
-### Courses
-GET /api/courses  
-POST /api/courses  
-GET /api/courses/<id>  
-PUT /api/courses/<id>  
-DELETE /api/courses/<id>  
+#### Get all students (with search & pagination)
 
-### Users
-GET /api/users  
-POST /api/users  
-GET /api/users/<id>  
-PUT /api/users/<id>  
-DELETE /api/users/<id>  
+```
+GET /api/students?search=ali&page=1&per_page=5
+```
+
+#### Create student
+
+```
+POST /api/students
+Content-Type: application/json
+
+{
+  "name": "Ali Ahmad",
+  "student_id": "12110002",
+  "course_ids": [1, 2]
+}
+```
+
+#### Get single student
+
+```
+GET /api/students/<student_id>
+```
+
+#### Update student
+
+```
+PUT /api/students/<student_id>
+```
+
+#### Delete student
+
+```
+DELETE /api/students/<student_id>
+```
+
+#### Enroll student in course
+
+```
+POST /api/students/<student_id>/enroll
+
+{
+  "course_id": 1
+}
+```
+
+#### Unenroll student
+
+```
+POST /api/students/<student_id>/unenroll
+```
 
 ---
 
-## 🔎 Search & Pagination
+### 📘 Courses API
 
-Example:
-GET /api/students?search=ali&page=1&per_page=5
+#### Get all courses
+
+```
+GET /api/courses
+```
+
+#### Create course
+
+```
+POST /api/courses
+```
+
+#### Get course
+
+```
+GET /api/courses/<id>
+```
+
+#### Update course
+
+```
+PUT /api/courses/<id>
+```
+
+#### Delete course
+
+```
+DELETE /api/courses/<id>
+```
+
+---
+
+### 👤 Users API (Admin Only)
+
+#### Get all users
+
+```
+GET /api/users
+```
+
+#### Create user
+
+```
+POST /api/users
+```
+
+#### Get user
+
+```
+GET /api/users/<id>
+```
+
+#### Update user
+
+```
+PUT /api/users/<id>
+```
+
+#### Delete user
+
+```
+DELETE /api/users/<id>
+```
+
+⚠️ Note: Admin cannot delete their own account (protected in backend logic).
+
+---
+
+## 🔐 Authentication Notes
+This app uses session-based authentication (Flask-Login).
+
+* All endpoints require login
+- Login via `/login`
+- Session cookie is used automatically
+* Role-based access enforced:
+
+  * Admin → full access
+  * Instructor → manage students & courses
+  * Student → limited access
+
+---
+
+## 📦 Response Format
+
+### Success
+
+```
+{
+  "success": true,
+  "data": {...}
+}
+```
+
+### Error
+
+```
+{
+  "success": false,
+  "error": "Error message"
+}
+```
+
+---
+
+## 🔎 Pagination Response Example
+
+```
+{
+  "success": true,
+  "count": 5,
+  "total": 20,
+  "page": 1,
+  "pages": 4,
+  "data": [...]
+}
+```
+
+---
+
+## 🧪 Notes from Implementation
+
+* Validation handled in **services layer**
+* Errors:
+
+  * 400 → ValidationError
+  * 404 → NotFoundError
+  * 409 → ConflictError
+* API returns JSON for all `/api/*` routes 
+
+
+
+
 
 ---
 ## 🖼️ Profile Picture Upload
@@ -192,29 +375,6 @@ GET /api/students?search=ali&page=1&per_page=5
 - Max size: 2MB
 - Folder: app/static/uploads
 
-------------------------------------------------------------------------
-
-## 🔐 Roles
-
-### Admin
-
--   Full access
-
-### Instructor
-
--   Manage students & courses
-
-### Student
-
--   View own courses only
-
-
-------------------------------------------------------------------------
-
-## 🌱 Seed Data
-
--   Admin: admin@gmail.com
--   Instructor: instructor1@najah.edu
 
 ------------------------------------------------------------------------
 
@@ -224,7 +384,6 @@ GET /api/students?search=ali&page=1&per_page=5
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
-python seed.py
 python run.py
 ```
 
@@ -235,4 +394,6 @@ python run.py
 ``` bash
 python -m pytest
 ```
+
+---
 
