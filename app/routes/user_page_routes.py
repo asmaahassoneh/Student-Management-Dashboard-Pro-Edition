@@ -16,7 +16,6 @@ from app.services.service_exceptions import (
     ValidationError,
 )
 from app.services.user_service import (
-    create_user,
     delete_user,
     paginate_users,
     require_user,
@@ -80,7 +79,6 @@ def add_user():
             name=name,
         )
         clean_data["profile_picture"] = profile_picture
-        user = create_user(clean_data)
 
         flash("User added successfully.", "success")
         return redirect(url_for("user_page_bp.list_users"))
