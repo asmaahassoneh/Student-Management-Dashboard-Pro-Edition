@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Add User{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <h2>Add User</h2>
+
+    {% if error %}
+    <div class="error-msg">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data">
+      <div class="form-grid">
+        <input type="text" name="username" placeholder="Username" value="{{ form_data.username }}" required />
+        <input type="email" name="email" placeholder="Email" value="{{ form_data.email }}" required />
+
+        <select name="role" required>
+          {% for role in roles %}
+          <option value="{{ role }}" {% if form_data.role == role %}selected{% endif %}>{{ role|capitalize }}</option>
+          {% endfor %}
+        </select>
+
+        <input type="password" name="password" placeholder="Password" required />
+        <input type="password" name="confirm_password" placeholder="Confirm Password" required />
+        <input type="file" name="profile_picture" accept="image/*" />
+        <button type="submit">Add User</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+

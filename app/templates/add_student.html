@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Add Student{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <h2>Add Student</h2>
+
+    {% if error %}
+    <div class="error-msg">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('student_page_bp.add_student') }}">
+      <div class="form-grid">
+        <input type="text" name="name" placeholder="Enter student name" value="{{ form_data.name }}" required />
+        <input type="text" name="student_id" placeholder="Enter student ID" value="{{ form_data.student_id }}" required />
+
+        <div class="courses-box">
+          <label class="courses-label">Select Courses</label>
+
+          {% for course in courses %}
+          <div class="course-option">
+            <label>
+              <input
+                type="checkbox"
+                name="course_ids"
+                value="{{ course.id }}"
+                {% if course.id|string in form_data.course_ids %}checked{% endif %}
+              />
+              {{ course.name }} ({{ course.code }})
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+
+        <button type="submit">Add Student</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

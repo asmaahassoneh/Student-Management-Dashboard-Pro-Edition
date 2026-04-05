@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="home">
+  <div class="glass-card home-content">
+    <h1>Dashboard</h1>
+    <p>Welcome, {{ current_user.username }}!</p>
+    <p>Your email: {{ current_user.email }}</p>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <h3>{{ stats.students_count }}</h3>
+        <p>Students</p>
+      </div>
+      <div class="stat-card">
+        <h3>{{ stats.courses_count }}</h3>
+        <p>Courses</p>
+      </div>
+      {% if current_user.is_admin %}
+      <div class="stat-card">
+        <h3>{{ stats.users_count }}</h3>
+        <p>Users</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="dashboard-actions">
+      <a class="dashboard-action-btn" href="{{ url_for('student_page_bp.list_students') }}">
+        <span class="dashboard-action-icon">🎓</span>
+        <span class="dashboard-action-text">
+          <strong>Students</strong>
+          <small>Manage all students</small>
+        </span>
+      </a>
+
+      <a class="dashboard-action-btn" href="{{ url_for('course_page_bp.list_courses') }}">
+        <span class="dashboard-action-icon">📘</span>
+        <span class="dashboard-action-text">
+          <strong>Courses</strong>
+          <small>Manage all courses</small>
+        </span>
+      </a>
+
+      {% if current_user.is_admin %}
+      <a class="dashboard-action-btn" href="{{ url_for('user_page_bp.list_users') }}">
+        <span class="dashboard-action-icon">👤</span>
+        <span class="dashboard-action-text">
+          <strong>Users</strong>
+          <small>Manage system users</small>
+        </span>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

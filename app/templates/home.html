@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="home">
+  <div class="glass-card home-content">
+    <h1>Welcome to Flask Student Management Dashboard</h1>
+    <p>
+      A full Flask capstone project with authentication, student and course management,
+      HTML pages, Jinja templates, and REST API endpoints.
+    </p>
+
+    {% if current_user.is_authenticated %}
+    <div class="action-links">
+      <a class="btn" href="{{ url_for('main_bp.dashboard') }}">Go to Dashboard</a>
+    </div>
+    {% else %}
+    <div class="action-links">
+      <a class="btn" href="{{ url_for('auth_bp.login') }}">Login</a>
+      <a class="btn secondary-btn" href="{{ url_for('auth_bp.register') }}">Register</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

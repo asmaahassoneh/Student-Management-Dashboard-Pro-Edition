@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Page Not Found{% endblock %}
+
+{% block content %}
+<div class="home">
+  <div class="glass-card home-content">
+    <h1>404 - Page Not Found</h1>
+    <p>The page you are looking for does not exist.</p>
+
+    <div class="action-links">
+      <a class="btn" href="{{ url_for('main_bp.home') }}">Go Home</a>
+      {% if current_user.is_authenticated %}
+      <a class="btn secondary-btn" href="{{ url_for('student_page_bp.list_students') }}">View Students</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

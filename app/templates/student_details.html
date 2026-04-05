@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Student Details{% endblock %}
+
+{% block content %}
+<div class="home">
+  <div class="glass-card">
+    <h2>Student Details</h2>
+
+    <div class="detail-item">
+      <span>Name</span>
+      <p>{{ student.name }}</p>
+    </div>
+
+    <div class="detail-item">
+      <span>Student ID</span>
+      <p>{{ student.student_id }}</p>
+    </div>
+
+
+    <div class="detail-item">
+      <span>Enrolled Courses</span>
+      {% if student.courses %}
+      <ul>
+        {% for course in student.courses %}
+        <li>{{ course.name }} ({{ course.code }})</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p>No courses enrolled yet.</p>
+      {% endif %}
+    </div>
+
+    <a class="btn" href="{{ url_for('student_page_bp.edit_student', student_id=student.student_id) }}">Edit</a>
+
+    <form method="POST" action="{{ url_for('student_page_bp.remove_student', student_id=student.student_id) }}" style="display: inline" onsubmit="return confirm('Delete this student?');">
+      <button class="btn danger-btn">Delete</button>
+    </form>
+
+    <a class="btn secondary-btn" href="{{ url_for('student_page_bp.list_students') }}" style="margin-top: 20px;">
+      Back to Students
+    </a>
+  </div>
+</div>
+{% endblock %}

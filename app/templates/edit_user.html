@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Edit User{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <h2>Edit User</h2>
+
+    {% if error %}
+    <div class="error-msg">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data">
+      <div class="form-grid">
+        <input type="text" name="username" value="{{ user.username }}" placeholder="Username" required />
+        <input type="email" name="email" value="{{ user.email }}" placeholder="Email" required />
+
+        <select name="role" required>
+          {% for role in roles %}
+          <option value="{{ role }}" {% if user.role == role %}selected{% endif %}>{{ role|capitalize }}</option>
+          {% endfor %}
+        </select>
+
+        <input type="password" name="password" placeholder="New password (optional)" />
+        <input type="file" name="profile_picture" accept="image/*" />
+        <button type="submit">Update User</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+

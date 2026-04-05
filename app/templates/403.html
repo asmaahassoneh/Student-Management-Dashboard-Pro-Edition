@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Access Denied{% endblock %}
+
+{% block content %}
+<div class="home">
+  <div class="glass-card home-content">
+    <h1>403 - Access Denied</h1>
+    <p>You do not have permission to access this page.</p>
+
+    <div class="action-links">
+      <a class="btn" href="{{ url_for('main_bp.home') }}">Go Home</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

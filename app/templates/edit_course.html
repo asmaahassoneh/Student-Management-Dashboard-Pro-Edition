@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Edit Course{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <h2>Edit Course</h2>
+
+    {% if error %}
+    <div class="error-msg">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST">
+      <div class="form-grid">
+        <input type="text" name="name" value="{{ course.name }}" placeholder="Course name" required />
+        <input type="text" name="code" value="{{ course.code }}" placeholder="Course code" required />
+        <textarea name="description" placeholder="Course description (optional)">{{ course.description or '' }}</textarea>
+        <button type="submit">Update Course</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

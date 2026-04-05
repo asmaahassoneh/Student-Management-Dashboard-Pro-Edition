@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Edit Student{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <h2>Edit Student</h2>
+
+    {% if error %}
+    <div class="error-msg">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST">
+      <div class="form-grid">
+        <input type="text" name="name" value="{{ student.name }}" placeholder="Enter student name" required />
+        <input type="text" value="{{ student.student_id }}" disabled />
+
+        <div class="courses-box">
+          <label class="courses-label">Enrolled Courses</label>
+
+          {% for course in courses %}
+          <div class="course-option">
+            <label>
+              <input
+                type="checkbox"
+                name="course_ids"
+                value="{{ course.id }}"
+                {% if course in student.courses %}checked{% endif %}
+              />
+              {{ course.name }} ({{ course.code }})
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+
+        <button type="submit">Update Student</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
