@@ -4,6 +4,7 @@ from app import create_app
 from app.config import TestConfig
 from app.extensions import db
 from app.models.course import Course
+from app.models.student import Student
 from app.models.user import User
 
 
@@ -36,13 +37,21 @@ def app():
         )
         student_user.set_password("Test1234")
 
+        student_profile = Student(
+            name="Test Student",
+            student_id="12110001",
+            user=student_user,
+        )
+
         course = Course(
             name="Data Structures",
             code="CSE201",
             description="Test course",
         )
 
-        db.session.add_all([admin_user, instructor_user, student_user, course])
+        db.session.add_all(
+            [admin_user, instructor_user, student_user, student_profile, course]
+        )
         db.session.commit()
 
         yield app

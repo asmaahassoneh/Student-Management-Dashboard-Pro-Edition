@@ -2,6 +2,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.extensions import db
 from app.models.course import Course
+from app.models.enrollment import Enrollment
 from app.models.student import Student
 from app.models.user import User
 from app.services.service_exceptions import (
@@ -33,7 +34,7 @@ def require_student(student_id):
     return student
 
 
-def paginate_students(search=None, page=1, per_page=5):
+def paginate_students(search=None, course_id=None, page=1, per_page=5):
     query = Student.query.order_by(Student.name.asc())
 
     if search:
@@ -43,19 +44,31 @@ def paginate_students(search=None, page=1, per_page=5):
             | (Student.student_id.ilike(f"%{search}%"))
         )
 
-    return query.paginate(page=page, per_page=per_page, error_out=False)
+    if course_id:
+        query = query.join(Enrollment, Enrollment.student_id == Student.id).filter(
+            Enrollment.course_id == course_id
+        )
+
+    return query.distinct().paginate(page=page, per_page=per_page, error_out=False)
 
 
 def get_courses_by_ids(course_ids):
     valid_courses = []
+    seen_ids = set()
 
     for course_id in course_ids:
         try:
-            course = db.session.get(Course, int(course_id))
-            if course:
-                valid_courses.append(course)
+            parsed_id = int(course_id)
         except (TypeError, ValueError):
             continue
+
+        if parsed_id in seen_ids:
+            continue
+
+        course = db.session.get(Course, parsed_id)
+        if course:
+            valid_courses.append(course)
+            seen_ids.add(parsed_id)
 
     return valid_courses
 
@@ -177,17 +190,31 @@ def validate_student_page_create(form_data, password, confirm_password):
     }
 
 
+def sync_student_enrollments(student, selected_courses):
+    selected_course_ids = {course.id for course in selected_courses}
+    existing_course_ids = {enrollment.course_id for enrollment in student.enrollments}
+
+    for enrollment in list(student.enrollments):
+        if enrollment.course_id not in selected_course_ids:
+            db.session.delete(enrollment)
+
+    for course in selected_courses:
+        if course.id not in existing_course_ids:
+            db.session.add(Enrollment(student=student, course=course))
+
+
 def create_student(data, selected_courses=None):
     try:
         student = Student(
             name=normalize_text(data["name"]),
             student_id=normalize_student_id(data["student_id"]),
         )
-
-        if selected_courses is not None:
-            student.courses = selected_courses
-
         db.session.add(student)
+        db.session.flush()
+
+        if selected_courses:
+            sync_student_enrollments(student, selected_courses)
+
         db.session.commit()
         return student
 
@@ -215,9 +242,11 @@ def create_student_with_user(form_data, password, confirm_password):
             student_id=clean_data["student_id"],
             user_id=user.id,
         )
-        student.courses = clean_data["selected_courses"]
-
         db.session.add(student)
+        db.session.flush()
+
+        sync_student_enrollments(student, clean_data["selected_courses"])
+
         db.session.commit()
         return user, student
 
@@ -235,7 +264,7 @@ def update_student(student, data, selected_courses=None):
             student.student_id = normalize_student_id(data["student_id"])
 
         if selected_courses is not None:
-            student.courses = selected_courses
+            sync_student_enrollments(student, selected_courses)
 
         db.session.commit()
         return student
@@ -246,11 +275,16 @@ def update_student(student, data, selected_courses=None):
 
 
 def enroll_student_in_course(student, course):
-    if course in student.courses:
+    existing = Enrollment.query.filter_by(
+        student_id=student.id,
+        course_id=course.id,
+    ).first()
+    if existing:
         raise ConflictError("Student already enrolled in this course.")
 
     try:
-        student.courses.append(course)
+        enrollment = Enrollment(student=student, course=course)
+        db.session.add(enrollment)
         db.session.commit()
         return student
 
@@ -260,11 +294,15 @@ def enroll_student_in_course(student, course):
 
 
 def unenroll_student_from_course(student, course):
-    if course not in student.courses:
+    enrollment = Enrollment.query.filter_by(
+        student_id=student.id,
+        course_id=course.id,
+    ).first()
+    if enrollment is None:
         raise ConflictError("Student is not enrolled in this course.")
 
     try:
-        student.courses.remove(course)
+        db.session.delete(enrollment)
         db.session.commit()
         return student
 

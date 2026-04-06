@@ -24,8 +24,14 @@ def list_courses():
     search = request.args.get("search", "").strip()
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 5, type=int)
+    student_db_id = request.args.get("student_db_id", type=int)
 
-    pagination = paginate_courses(search=search, page=page, per_page=per_page)
+    pagination = paginate_courses(
+        search=search,
+        student_id=student_db_id,
+        page=page,
+        per_page=per_page,
+    )
 
     return (
         jsonify(
@@ -35,6 +41,10 @@ def list_courses():
                 "total": pagination.total,
                 "page": pagination.page,
                 "pages": pagination.pages,
+                "filters": {
+                    "search": search,
+                    "student_db_id": student_db_id,
+                },
                 "data": [course.to_dict() for course in pagination.items],
             }
         ),
@@ -47,7 +57,30 @@ def list_courses():
 def get_course(course_id):
     try:
         course = require_course(course_id)
-        return jsonify({"success": True, "data": course.to_dict()}), 200
+        return (
+            jsonify({"success": True, "data": course.to_dict(include_students=True)}),
+            200,
+        )
+    except NotFoundError as exc:
+        return jsonify({"success": False, "error": str(exc)}), 404
+
+
+@course_api_bp.route("/<int:course_id>/students", methods=["GET"])
+@login_required
+def get_course_students(course_id):
+    try:
+        course = require_course(course_id)
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "course_id": course.id,
+                    "count": len(course.students),
+                    "data": [student.to_dict() for student in course.students],
+                }
+            ),
+            200,
+        )
     except NotFoundError as exc:
         return jsonify({"success": False, "error": str(exc)}), 404
 

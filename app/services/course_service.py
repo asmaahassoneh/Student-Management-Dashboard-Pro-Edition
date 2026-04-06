@@ -2,6 +2,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.extensions import db
 from app.models.course import Course
+from app.models.enrollment import Enrollment
 from app.services.service_exceptions import (
     ConflictError,
     NotFoundError,
@@ -26,7 +27,7 @@ def require_course(course_id):
     return course
 
 
-def paginate_courses(search=None, page=1, per_page=5):
+def paginate_courses(search=None, student_id=None, page=1, per_page=5):
     query = Course.query.order_by(Course.name.asc())
 
     if search:
@@ -35,7 +36,12 @@ def paginate_courses(search=None, page=1, per_page=5):
             (Course.name.ilike(f"%{search}%")) | (Course.code.ilike(f"%{search}%"))
         )
 
-    return query.paginate(page=page, per_page=per_page, error_out=False)
+    if student_id:
+        query = query.join(Enrollment, Enrollment.course_id == Course.id).filter(
+            Enrollment.student_id == student_id
+        )
+
+    return query.distinct().paginate(page=page, per_page=per_page, error_out=False)
 
 
 def list_all_courses():
