@@ -1,5 +1,71 @@
 from app.extensions import db
 from app.models.course import Course
+from app.models.student import Student
+
+
+def test_get_courses_with_pagination(auth_client, app):
+    with app.app_context():
+        for i in range(6):
+            db.session.add(
+                Course(
+                    name=f"Course {i}",
+                    code=f"CSE5{i}0",
+                    description="Extra course",
+                )
+            )
+        db.session.commit()
+
+    response = auth_client.get("/api/courses?page=1&per_page=3")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["page"] == 1
+    assert len(data["data"]) == 3
+
+
+def test_get_course_students_success(instructor_client, app):
+    with app.app_context():
+        course = Course(name="Networks", code="CSE401", description="Networks")
+        student = Student(name="API Student", student_id="12118888")
+        db.session.add_all([course, student])
+        db.session.commit()
+
+        course_id = course.id
+        student_id = student.student_id
+
+    enroll_response = instructor_client.post(
+        f"/api/students/{student_id}/enroll",
+        json={"course_id": course_id},
+    )
+    assert enroll_response.status_code == 200
+
+    response = instructor_client.get(f"/api/courses/{course_id}/students")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["success"] is True
+    assert data["count"] == 1
+    assert data["data"][0]["student_id"] == "12118888"
+
+
+def test_filter_courses_by_student_db_id(instructor_client, app):
+    with app.app_context():
+        course = Course(name="AI", code="CSE450", description="AI")
+        student = Student(name="Filter Student", student_id="12119998")
+        db.session.add_all([course, student])
+        db.session.commit()
+        course_id = course.id
+        student_student_id = student.student_id
+        student_db_id = student.id
+
+    enroll_response = instructor_client.post(
+        f"/api/students/{student_student_id}/enroll",
+        json={"course_id": course_id},
+    )
+    assert enroll_response.status_code == 200
+
+    response = instructor_client.get(f"/api/courses?student_db_id={student_db_id}")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert any(item["code"] == "CSE450" for item in data["data"])
 
 
 def test_get_courses_requires_login(client):

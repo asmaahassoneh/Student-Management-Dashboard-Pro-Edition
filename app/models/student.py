@@ -1,5 +1,4 @@
 from app.extensions import db
-from app.models.course import student_courses
 
 
 class Student(db.Model):
@@ -18,11 +17,22 @@ class Student(db.Model):
 
     user = db.relationship("User", backref=db.backref("student_profile", uselist=False))
 
+    enrollments = db.relationship(
+        "Enrollment",
+        back_populates="student",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
+
     courses = db.relationship(
         "Course",
-        secondary=student_courses,
-        back_populates="students",
-        lazy="subquery",
+        secondary="enrollments",
+        primaryjoin="Student.id == Enrollment.student_id",
+        secondaryjoin="Course.id == Enrollment.course_id",
+        viewonly=True,
+        lazy="selectin",
+        order_by="Course.name.asc()",
     )
 
     @property
@@ -38,3 +48,6 @@ class Student(db.Model):
             "courses": [course.to_dict() for course in self.courses],
             "courses_count": self.courses_count,
         }
+
+    def __repr__(self):
+        return f"<Student {self.student_id} - {self.name}>"

@@ -1,21 +1,5 @@
 from app.extensions import db
 
-student_courses = db.Table(
-    "student_courses",
-    db.Column(
-        "student_id",
-        db.Integer,
-        db.ForeignKey("students.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-    db.Column(
-        "course_id",
-        db.Integer,
-        db.ForeignKey("courses.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-)
-
 
 class Course(db.Model):
     __tablename__ = "courses"
@@ -25,21 +9,37 @@ class Course(db.Model):
     code = db.Column(db.String(20), nullable=False, unique=True)
     description = db.Column(db.String(255), nullable=True)
 
-    students = db.relationship(
-        "Student",
-        secondary=student_courses,
-        back_populates="courses",
-        lazy="subquery",
+    enrollments = db.relationship(
+        "Enrollment",
+        back_populates="course",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
     )
 
-    def to_dict(self):
-        return {
+    students = db.relationship(
+        "Student",
+        secondary="enrollments",
+        primaryjoin="Course.id == Enrollment.course_id",
+        secondaryjoin="Student.id == Enrollment.student_id",
+        viewonly=True,
+        lazy="selectin",
+        order_by="Student.name.asc()",
+    )
+
+    def to_dict(self, include_students=False):
+        data = {
             "id": self.id,
             "name": self.name,
             "code": self.code,
             "description": self.description,
             "students_count": len(self.students),
         }
+
+        if include_students:
+            data["students"] = [student.to_dict() for student in self.students]
+
+        return data
 
     def __repr__(self):
         return f"<Course {self.code} - {self.name}>"
