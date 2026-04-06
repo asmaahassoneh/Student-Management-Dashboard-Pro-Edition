@@ -1,4 +1,4 @@
-# 🎓 Student Management Dashboard – Pro Edition
+## 🎓 Student Management Dashboard – Pro Edition
 
 A production-ready Flask web application for managing students, courses, and users with authentication, role-based access control, profile picture upload, course enrollment APIs, search, and pagination.
 
@@ -10,14 +10,15 @@ This project is an expanded version of the Student Management Dashboard built wi
 
 - Authentication system
 - Role-based users: **Admin, Instructor, Student**
-- Student-Course **many-to-many** relationship
-- Profile picture upload
+- Student-Course many-to-many relationship using an **Enrollment** table
 - Course enrollment and unenrollment API
-- Search and pagination
+- Search, filtering, and pagination
+- Relationship tests for enrollments and cascading deletes
+- Profile picture upload
 - HTML pages with Jinja templates
 - REST API endpoints
 - SQLite database with SQLAlchemy
-- Seeded demo data
+- Seeded demo data for admin, instructor, students, courses, and enrollments
 
 ---
 ## 🌿 Git Branching Strategy
@@ -50,7 +51,9 @@ git checkout -b feature/readme-docs
 
 ### Milestone 2 --- Database Relationship Expansion
 
--   Added many-to-many relationship between students and courses
+-   Replaced the plain join table with an `Enrollment` model
+-   Added unique enrollment constraint per student-course pair
+-   Added cascading deletes for related enrollments
 -   Linked student accounts with user accounts
 
 ### Milestone 3 --- Profile Picture Upload
@@ -62,14 +65,22 @@ git checkout -b feature/readme-docs
 ### Milestone 4 --- Course Enrollment API
 
 -   Added enroll & unenroll endpoints
+-   Added endpoints to list a student's courses and a course's students
 -   Admin/Instructor can manage enrollments
 
-### Milestone 5 --- Search and Pagination
+### Milestone 5 --- Search, Filtering, and Pagination
 
 -   Added search to students, courses, users
--   Added pagination
+-   Added pagination to HTML pages and APIs
+-   Added relationship-based filtering where applicable
 
-### Milestone 6 --- Documentation and Cleanup
+### Milestone 6 --- Relationship Testing
+
+-   Added tests for enrollments
+-   Added tests for duplicate enrollment prevention
+-   Added tests for cascade delete behavior
+
+### Milestone 7 --- Documentation and Cleanup
 
 -   Documented schema and APIs
 -   Clean architecture applied
@@ -96,6 +107,7 @@ Student Management Dashboard - Pro Edition/
 │   ├── models/
 │   │   ├── user.py
 │   │   ├── student.py
+│   │   ├── enrollment.py
 │   │   ├── course.py
 │   │   └── __init__.py
 │   │
@@ -164,13 +176,18 @@ Student Management Dashboard - Pro Edition/
 
 ---
 
-### 🔗 student_courses (Many-to-Many)
+### 🔗 Enrollment
 
-| Field      | Type             | Description       |
-| ---------- | ---------------- | ----------------- |
-| student_id | FK → students.id | Student reference |
-| course_id  | FK → courses.id  | Course reference  |
+| Field       | Type             | Description                         |
+| ----------- | ---------------- | ----------------------------------- |
+| id          | Integer (PK)     | Unique enrollment ID                |
+| student_id  | FK → students.id | Student reference                   |
+| course_id   | FK → courses.id  | Course reference                    |
+| enrolled_at | DateTime         | UTC timestamp when enrollment added |
 
+**Constraints**
+- Unique constraint on `(student_id, course_id)` to prevent duplicate enrollments
+- Cascading delete when a student or course is removed
 
 ---
 
@@ -178,10 +195,10 @@ Student Management Dashboard - Pro Edition/
 
 ### 🎓 Students API
 
-#### Get all students (with search & pagination)
+#### Get all students (with search, filtering & pagination)
 
-```
-GET /api/students?search=ali&page=1&per_page=5
+```http
+GET /api/students?search=ali&course_id=1&page=1&per_page=5
 ```
 
 #### Create student
@@ -235,10 +252,12 @@ POST /api/students/<student_id>/unenroll
 
 ### 📘 Courses API
 
-#### Get all courses
+### 📘 Courses API
 
-```
-GET /api/courses
+#### Get all courses (with search, filtering & pagination)
+
+```http
+GET /api/courses?search=data&student_db_id=1&page=1&per_page=5
 ```
 
 #### Create course
@@ -252,7 +271,10 @@ POST /api/courses
 ```
 GET /api/courses/<id>
 ```
-
+#### Get students enrolled in a course
+```
+GET /api/courses/<id>/students
+```
 #### Update course
 
 ```
@@ -348,8 +370,12 @@ This app uses session-based authentication (Flask-Login).
   "total": 20,
   "page": 1,
   "pages": 4,
+  "filters": {
+    "search": "ali",
+    "course_id": 1
+  },
   "data": [...]
-}
+
 ```
 
 ---
