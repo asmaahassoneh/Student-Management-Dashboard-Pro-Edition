@@ -16,6 +16,7 @@ from app.services.service_exceptions import (
     ValidationError,
 )
 from app.services.user_service import (
+    create_user,
     delete_user,
     paginate_users,
     require_user,
@@ -62,12 +63,6 @@ def add_user():
     password = request.form.get("password", "")
     confirm_password = request.form.get("confirm_password", "")
 
-    profile_picture = save_profile_picture(
-        request.files.get("profile_picture"),
-        current_app.config["UPLOAD_FOLDER"],
-        current_app.config["ALLOWED_IMAGE_EXTENSIONS"],
-    )
-
     form_data = {"username": username, "email": email, "name": name}
 
     try:
@@ -78,10 +73,18 @@ def add_user():
             confirm_password=confirm_password,
             name=name,
         )
+
+        profile_picture = save_profile_picture(
+            request.files.get("profile_picture"),
+            current_app.config["UPLOAD_FOLDER"],
+            current_app.config["ALLOWED_IMAGE_EXTENSIONS"],
+        )
         clean_data["profile_picture"] = profile_picture
 
+        create_user(clean_data)
         flash("User added successfully.", "success")
         return redirect(url_for("user_page_bp.list_users"))
+
     except (ValidationError, ConflictError) as exc:
         return render_template(
             "add_user.html",
@@ -121,6 +124,7 @@ def edit_user(user_id):
         )
 
     username = request.form.get("username", "").strip()
+    full_name = request.form.get("full_name", "").strip()
     email = request.form.get("email", "").strip()
     password = request.form.get("password", "")
     role = request.form.get("role", user.role)
@@ -135,13 +139,22 @@ def edit_user(user_id):
         )
 
     try:
-        clean_data = validate_user_page_update(user, username, email, password, role)
+        clean_data = validate_user_page_update(
+            user=user,
+            username=username,
+            email=email,
+            password=password,
+            role=role,
+            full_name=full_name,
+        )
+
         if profile_picture:
             clean_data["profile_picture"] = profile_picture
 
         update_user(user, clean_data)
         flash("User updated successfully.", "success")
         return redirect(url_for("user_page_bp.user_details", user_id=user.id))
+
     except (ValidationError, ConflictError) as exc:
         from app.models.user import User
 

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Server Error{% endblock %}
+
+{% block content %}
+<div class="home">
+  <div class="glass-card home-content">
+    <h1>500 - Internal Server Error</h1>
+    <p>Something went wrong on our side. Please try again later.</p>
+
+    <div class="action-links">
+      <a class="btn" href="{{ url_for('main_bp.home') }}">Go Home</a>
+      {% if current_user.is_authenticated %}
+      <a class="btn secondary-btn" href="{{ url_for('main_bp.dashboard') }}">Dashboard</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

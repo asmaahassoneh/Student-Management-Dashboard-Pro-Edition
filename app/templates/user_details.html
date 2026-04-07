@@ -18,6 +18,11 @@
     </div>
 
     <div class="detail-item">
+      <span>Full Name</span>
+      <p>{{ user.full_name or "-" }}</p>
+    </div>
+
+    <div class="detail-item">
       <span>Email</span>
       <p>{{ user.email }}</p>
     </div>
@@ -31,4 +36,3 @@
   </div>
 </div>
 {% endblock %}
-

@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, redirect, render_template, request, url_for, flash
 
 from app.config import Config
-from app.extensions import db, login_manager
+from app.extensions import csrf, db, login_manager
 from app.models.user import User
 from app.routes.auth_routes import auth_bp
 from app.routes.course_api_routes import course_api_bp
@@ -19,6 +19,7 @@ def create_app(config_class=Config):
 
     db.init_app(app)
     login_manager.init_app(app)
+    csrf.init_app(app)
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -57,7 +58,7 @@ def create_app(config_class=Config):
     def internal_server_error(error):
         if request.path.startswith("/api/"):
             return jsonify({"success": False, "error": "Internal server error."}), 500
-        return render_template("404.html"), 500
+        return render_template("500.html"), 500
 
     @app.errorhandler(403)
     def forbidden(error):

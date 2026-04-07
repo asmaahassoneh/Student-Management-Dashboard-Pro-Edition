@@ -313,7 +313,13 @@ def unenroll_student_from_course(student, course):
 
 def delete_student(student):
     try:
+        linked_user = student.user
+
         db.session.delete(student)
+
+        if linked_user is not None:
+            db.session.delete(linked_user)
+
         db.session.commit()
 
     except SQLAlchemyError as exc:
