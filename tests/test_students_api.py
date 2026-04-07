@@ -1,6 +1,14 @@
 from app.extensions import db
 from app.models.course import Course
 from app.models.student import Student
+from app.models.enrollment import Enrollment
+
+
+def create_student_only(name="API Student", student_id="12112458"):
+    student = Student(name=name, student_id=student_id)
+    db.session.add(student)
+    db.session.commit()
+    return student
 
 
 def create_sample_student():
@@ -275,3 +283,114 @@ def test_students_method_not_allowed(auth_client):
     assert response.status_code == 405
     data = response.get_json()
     assert data["error"] == "Method not allowed."
+
+
+def test_get_student_courses_not_found(instructor_client):
+    response = instructor_client.get("/api/students/00000000/courses")
+    assert response.status_code == 404
+    data = response.get_json()
+    assert data["error"] == "Student not found."
+
+
+def test_enroll_student_missing_course_id(instructor_client, app):
+    with app.app_context():
+        create_student_only()
+
+    response = instructor_client.post("/api/students/12112458/enroll", json={})
+    assert response.status_code == 400
+    data = response.get_json()
+    assert data["error"] == "course_id is required."
+
+
+def test_enroll_student_invalid_course_id_type(instructor_client, app):
+    with app.app_context():
+        create_student_only()
+
+    response = instructor_client.post(
+        "/api/students/12112458/enroll",
+        json={"course_id": "abc"},
+    )
+    assert response.status_code == 404
+    data = response.get_json()
+    assert data["error"] == "Course not found."
+
+
+def test_enroll_student_course_not_found(instructor_client, app):
+    with app.app_context():
+        create_student_only()
+
+    response = instructor_client.post(
+        "/api/students/12112458/enroll",
+        json={"course_id": 99999},
+    )
+    assert response.status_code == 404
+    data = response.get_json()
+    assert data["error"] == "Course not found."
+
+
+def test_unenroll_student_missing_course_id(instructor_client, app):
+    with app.app_context():
+        create_student_only()
+
+    response = instructor_client.post("/api/students/12112458/unenroll", json={})
+    assert response.status_code == 400
+    data = response.get_json()
+    assert data["error"] == "course_id is required."
+
+
+def test_unenroll_student_invalid_course_id_type(instructor_client, app):
+    with app.app_context():
+        create_student_only()
+
+    response = instructor_client.post(
+        "/api/students/12112458/unenroll",
+        json={"course_id": "abc"},
+    )
+    assert response.status_code == 404
+    data = response.get_json()
+    assert data["error"] == "Course not found."
+
+
+def test_unenroll_student_course_not_found(instructor_client, app):
+    with app.app_context():
+        create_student_only()
+
+    response = instructor_client.post(
+        "/api/students/12112458/unenroll",
+        json={"course_id": 99999},
+    )
+    assert response.status_code == 404
+    data = response.get_json()
+    assert data["error"] == "Course not found."
+
+
+def test_enroll_student_duplicate_returns_conflict(instructor_client, app):
+    with app.app_context():
+        student = create_student_only()
+        course = Course.query.filter_by(code="CSE201").first()
+        course_id = course.id
+
+        db.session.add(Enrollment(student_id=student.id, course_id=course_id))
+        db.session.commit()
+
+    response = instructor_client.post(
+        "/api/students/12112458/enroll",
+        json={"course_id": course_id},
+    )
+    assert response.status_code == 409
+    data = response.get_json()
+    assert data["success"] is False
+
+
+def test_unenroll_student_not_enrolled_returns_conflict(instructor_client, app):
+    with app.app_context():
+        create_student_only()
+        course = Course.query.filter_by(code="CSE201").first()
+
+    response = instructor_client.post(
+        "/api/students/12112458/unenroll",
+        json={"course_id": course.id},
+    )
+    assert response.status_code == 409
+    data = response.get_json()
+    assert data["success"] is False
