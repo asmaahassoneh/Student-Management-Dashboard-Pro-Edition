@@ -98,24 +98,17 @@ def validate_user_api_create(data):
 
 def validate_user_page_create(username, email, password, confirm_password, name):
     error = validate_user_form(
-        username,
-        email,
-        password,
-        confirm_password,
-        role=User.ROLE_STUDENT,
+        username=username,
+        email=email,
+        password=password,
+        confirm_password=confirm_password,
     )
     if error:
         raise ValidationError(error)
 
-    role, extracted_student_id, role_error = detect_role_and_student_id(email)
-    if role_error:
-        raise ValidationError(role_error)
-
-    if role == User.ROLE_STUDENT and not normalize_text(name):
-        raise ValidationError("Full name is required for student accounts.")
-
     normalized_username = normalize_text(username)
     normalized_email = normalize_email(email)
+    normalized_name = normalize_text(name)
 
     if User.query.filter_by(username=normalized_username).first():
         raise ConflictError("Username already exists.")
@@ -123,7 +116,16 @@ def validate_user_page_create(username, email, password, confirm_password, name)
     if User.query.filter_by(email=normalized_email).first():
         raise ConflictError("Email already exists.")
 
+    role, extracted_student_id, role_error = detect_role_and_student_id(
+        normalized_email
+    )
+    if role_error:
+        raise ValidationError(role_error)
+
     if role == User.ROLE_STUDENT:
+        if not normalized_name:
+            raise ValidationError("Full name is required for student accounts.")
+
         existing_student = Student.query.filter_by(
             student_id=extracted_student_id
         ).first()
@@ -132,11 +134,12 @@ def validate_user_page_create(username, email, password, confirm_password, name)
 
     return {
         "username": normalized_username,
+        "full_name": normalized_name or None,
         "email": normalized_email,
         "password": password,
-        "name": normalize_text(name),
         "role": role,
         "student_id": extracted_student_id,
+        "name": normalized_name,
     }
 
 
@@ -166,10 +169,13 @@ def validate_user_api_update(user, data):
         if not is_valid_email(clean_data["email"]):
             raise ValidationError("Email is not valid.")
 
+    if "full_name" in clean_data:
+        clean_data["full_name"] = normalize_text(clean_data["full_name"])
+
     return clean_data
 
 
-def validate_user_page_update(user, username, email, password, role):
+def validate_user_page_update(user, username, email, password, role, full_name=""):
     error = validate_user_form(
         username,
         email,
@@ -182,6 +188,7 @@ def validate_user_page_update(user, username, email, password, role):
 
     normalized_username = normalize_text(username)
     normalized_email = normalize_email(email)
+    normalized_full_name = normalize_text(full_name)
 
     existing_username = User.query.filter_by(username=normalized_username).first()
     if existing_username and existing_username.id != user.id:
@@ -196,6 +203,7 @@ def validate_user_page_update(user, username, email, password, role):
         "email": normalized_email,
         "role": role,
         "password": password,
+        "full_name": normalized_full_name or None,
     }
 
 
@@ -203,6 +211,8 @@ def create_user(data):
     try:
         user = User(
             username=normalize_text(data["username"]),
+            full_name=normalize_text(data.get("full_name") or data.get("name", ""))
+            or None,
             email=normalize_email(data["email"]),
             role=data.get("role", User.ROLE_STUDENT),
             profile_picture=data.get("profile_picture"),
@@ -243,11 +253,19 @@ def update_user(user, data):
         if "role" in data:
             user.role = data["role"]
 
+        if "full_name" in data:
+            user.full_name = (
+                normalize_text(data["full_name"]) if data["full_name"] else None
+            )
+
         if "profile_picture" in data:
             user.profile_picture = data["profile_picture"]
 
         if "password" in data and data["password"]:
             user.set_password(data["password"])
+
+        if user.student_profile and user.full_name:
+            user.student_profile.name = user.full_name
 
         db.session.commit()
         return user
@@ -259,6 +277,9 @@ def update_user(user, data):
 
 def delete_user(user):
     try:
+        if user.student_profile is not None:
+            db.session.delete(user.student_profile)
+
         db.session.delete(user)
         db.session.commit()
     except SQLAlchemyError as exc:

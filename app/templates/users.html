@@ -48,6 +48,7 @@
             <a class="btn" href="{{ url_for('user_page_bp.edit_user', user_id=user.id) }}">Edit</a>
             {% if user.id != current_user.id %}
             <form method="POST" action="{{ url_for('user_page_bp.remove_user', user_id=user.id) }}" style="display:inline;" onsubmit="return confirm('Delete this user?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="btnDelete danger-btn">Delete</button>
             </form>
             {% endif %}

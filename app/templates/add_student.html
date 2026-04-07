@@ -18,6 +18,7 @@
     </p>
 
     <form method="POST" action="{{ url_for('student_page_bp.add_student') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="form-grid">
         <input
           type="text"

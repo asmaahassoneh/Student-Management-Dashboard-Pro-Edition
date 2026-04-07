@@ -3,6 +3,7 @@ from app.extensions import db
 from app.models.user import User
 from app.models.student import Student
 from app.models.course import Course
+from app.models.enrollment import Enrollment
 from app.utils.role_helpers import extract_student_id
 
 
@@ -80,6 +81,7 @@ def seed():
             "email": "s12110002@stu.najah.edu",
             "password": "Ali12345",
             "profile_picture": "ali.jpg",
+            "course_codes": ["CSE201", "CSE301"],
         },
         {
             "name": "Sara Khaled",
@@ -87,6 +89,7 @@ def seed():
             "email": "s12110003@stu.najah.edu",
             "password": "Sara12345",
             "profile_picture": "sara.webp",
+            "course_codes": ["CSE302", "CSE303"],
         },
     ]
 
@@ -128,13 +131,27 @@ def seed():
                 user_id=user.id,
             )
             db.session.add(student)
+            db.session.flush()
             print(f"✅ Student profile created: {s['name']}")
         else:
             student.name = s["name"]
             student.user_id = user.id
             print(f"ℹ️ Student profile exists: {s['name']} -> updated")
 
-        student.courses = courses[:2]
+        desired_courses = (
+            Course.query.filter(Course.code.in_(s["course_codes"]))
+            .order_by(Course.name.asc())
+            .all()
+        )
+
+        existing_course_ids = {
+            enrollment.course_id for enrollment in student.enrollments
+        }
+
+        for course in desired_courses:
+            if course.id not in existing_course_ids:
+                db.session.add(Enrollment(student_id=student.id, course_id=course.id))
+                print(f"✅ Enrolled {s['name']} in {course.code}")
 
     db.session.commit()
     print("🎉 Seeding completed successfully!")
@@ -145,3 +162,4 @@ if __name__ == "__main__":
 
     with app.app_context():
         db.create_all()
+        seed()

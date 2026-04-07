@@ -19,6 +19,7 @@
     </p>
 
     <form method="POST" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="form-grid">
         <input type="text" name="username" placeholder="Username" value="{{ form_data.username }}" required />
         <input type="text" name="name" placeholder="Full Name (required for student accounts)" value="{{ form_data.name }}" />
