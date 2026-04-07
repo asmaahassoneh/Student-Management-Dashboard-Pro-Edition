@@ -16,7 +16,6 @@
       <p>{{ student.student_id }}</p>
     </div>
 
-
     <div class="detail-item">
       <span>Enrolled Courses</span>
       {% if student.courses %}
@@ -33,6 +32,7 @@
     <a class="btn" href="{{ url_for('student_page_bp.edit_student', student_id=student.student_id) }}">Edit</a>
 
     <form method="POST" action="{{ url_for('student_page_bp.remove_student', student_id=student.student_id) }}" style="display: inline" onsubmit="return confirm('Delete this student?');">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button class="btn danger-btn">Delete</button>
     </form>
 

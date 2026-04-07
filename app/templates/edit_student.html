@@ -11,6 +11,7 @@
     {% endif %}
 
     <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="form-grid">
         <input type="text" name="name" value="{{ student.name }}" placeholder="Enter student name" required />
         <input type="text" value="{{ student.student_id }}" disabled />

@@ -46,7 +46,8 @@
             <a class="btn secondary-btn" href="{{ url_for('student_page_bp.student_details', student_id=student.student_id) }}">View</a>
             <a class="btn" href="{{ url_for('student_page_bp.edit_student', student_id=student.student_id) }}">Edit</a>
 
-            <form method="POST" action="{{ url_for('student_page_bp.remove_student', student_id=student.student_id) }}" style="display: inline" onsubmit="return confirm('Are you sure you want to delete this student?');">
+            <form method="POST" action="{{ url_for('student_page_bp.remove_student', student_id=student.student_id) }}" style="display:inline;" onsubmit="return confirm('Delete this student?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="btnDelete danger-btn">Delete</button>
             </form>
           </td>

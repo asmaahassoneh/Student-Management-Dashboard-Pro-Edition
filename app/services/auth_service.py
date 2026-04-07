@@ -46,15 +46,15 @@ def register_user(form, files, upload_folder, allowed_extensions):
         if existing_student:
             raise ConflictError("Student ID already exists.")
 
-    profile_picture_file = files.get("profile_picture")
     profile_picture = save_profile_picture(
-        profile_picture_file,
+        files.get("profile_picture"),
         upload_folder,
         allowed_extensions,
     )
 
     user = User(
         username=username,
+        full_name=name,
         email=email,
         role=role,
         profile_picture=profile_picture,
