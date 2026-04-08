@@ -2,6 +2,13 @@
 {% block title %}Users{% endblock %}
 
 {% block content %}
+<div
+  id="usersPageData"
+  data-csrf-token="{{ csrf_token() }}"
+  data-current-user-id="{{ current_user.id }}"
+  style="display: none;"
+></div>
+
 <div class="app-container">
   <div class="course-student-card">
     <div class="top-bar">
@@ -9,17 +16,39 @@
       <a class="btn" href="{{ url_for('user_page_bp.add_user') }}">Add User</a>
     </div>
 
-    <form method="GET" class="search-form" style="margin: 18px 0;">
-      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <input type="text" name="search" placeholder="Search by username, email, or role" value="{{ search }}" style="flex: 1; min-width: 220px;" />
-        <button type="submit" class="btn">Search</button>
-        {% if search %}
-        <a class="btn secondary-btn" href="{{ url_for('user_page_bp.list_users') }}">Clear</a>
-        {% endif %}
+    <form id="userSearchForm" class="search-form" style="margin: 18px 0;">
+      <div class="row g-2" style="margin: 18px 0;">
+        <div class="col-md-8">
+          <input
+            id="userSearchInput"
+            class="form-control"
+            type="text"
+            name="search"
+            placeholder="Search by username, email, or role"
+            value="{{ search or '' }}"
+          />
+        </div>
+
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-primary w-100">
+            Search
+          </button>
+        </div>
+
+        <div class="col-md-2">
+          <button
+            type="button"
+            id="clearUserSearch"
+            class="btn btn-secondary w-100"
+          >
+            Clear
+          </button>
+        </div>
       </div>
     </form>
 
-    {% if users %}
+    <div id="userLoading" class="search-loading">Loading users...</div>
+
     <table class="student-table">
       <thead>
         <tr>
@@ -30,49 +59,118 @@
           <th>Actions</th>
         </tr>
       </thead>
-      <tbody>
-        {% for user in users %}
-        <tr>
-          <td>
-            {% if user.profile_picture %}
-            <img src="{{ url_for('static', filename='uploads/' + user.profile_picture) }}" alt="Profile" class="table-profile-pic" />
-            {% else %}
-            -
-            {% endif %}
-          </td>
-          <td>{{ user.username }}</td>
-          <td>{{ user.email }}</td>
-          <td><span class="role-badge">{{ user.role|capitalize }}</span></td>
-          <td>
-            <a class="btn secondary-btn" href="{{ url_for('user_page_bp.user_details', user_id=user.id) }}">View</a>
-            <a class="btn" href="{{ url_for('user_page_bp.edit_user', user_id=user.id) }}">Edit</a>
-            {% if user.id != current_user.id %}
-            <form method="POST" action="{{ url_for('user_page_bp.remove_user', user_id=user.id) }}" style="display:inline;" onsubmit="return confirm('Delete this user?');">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="btnDelete danger-btn">Delete</button>
-            </form>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
+      <tbody id="usersTableBody">
+        {% if users %}
+          {% for user in users %}
+          <tr>
+            <td>
+              {% if user.profile_picture %}
+              <img
+                src="{{ url_for('static', filename='uploads/' + user.profile_picture) }}"
+                alt="Profile"
+                class="table-profile-pic"
+              />
+              {% else %}
+              -
+              {% endif %}
+            </td>
+            <td>{{ user.username }}</td>
+            <td>{{ user.email }}</td>
+            <td>
+              <span class="role-badge">{{ user.role|capitalize }}</span>
+            </td>
+            <td>
+              <div class="table-actions">
+                <a
+                  class="btn secondary-btn"
+                  href="{{ url_for('user_page_bp.user_details', user_id=user.id) }}"
+                >
+                  View
+                </a>
+                <a
+                  class="btn"
+                  href="{{ url_for('user_page_bp.edit_user', user_id=user.id) }}"
+                >
+                  Edit
+                </a>
+
+                {% if user.id != current_user.id %}
+                <form
+                  method="POST"
+                  action="{{ url_for('user_page_bp.remove_user', user_id=user.id) }}"
+                  onsubmit="return confirm('Delete this user?');"
+                >
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btnDelete danger-btn">Delete</button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="5" class="table-empty">No users found.</td>
+          </tr>
+        {% endif %}
       </tbody>
     </table>
 
-    <div class="pagination" style="margin-top: 20px; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;">
-      {% if pagination.has_prev %}
-      <a class="btn secondary-btn" href="{{ url_for('user_page_bp.list_users', page=pagination.prev_num, search=search) }}">Previous</a>
-      {% endif %}
+    <div id="usersPagination" class="pagination-ui">
+      {% if pagination and pagination.pages > 1 %}
+        {% if pagination.has_prev %}
+        <button
+          type="button"
+          class="btn secondary-btn"
+          data-page="{{ pagination.prev_num }}"
+        >
+          Previous
+        </button>
+        {% else %}
+        <button
+          type="button"
+          class="btn secondary-btn"
+          disabled
+        >
+          Previous
+        </button>
+        {% endif %}
 
-      <span>Page {{ pagination.page }} of {{ pagination.pages or 1 }}</span>
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=1) %}
+          {% if page_num %}
+          <button
+            type="button"
+            class="btn secondary-btn page-number {% if page_num == pagination.page %}active{% endif %}"
+            data-page="{{ page_num }}"
+          >
+            {{ page_num }}
+          </button>
+          {% endif %}
+        {% endfor %}
 
-      {% if pagination.has_next %}
-      <a class="btn secondary-btn" href="{{ url_for('user_page_bp.list_users', page=pagination.next_num, search=search) }}">Next</a>
+        {% if pagination.has_next %}
+        <button
+          type="button"
+          class="btn secondary-btn"
+          data-page="{{ pagination.next_num }}"
+        >
+          Next
+        </button>
+        {% else %}
+        <button
+          type="button"
+          class="btn secondary-btn"
+          disabled
+        >
+          Next
+        </button>
+        {% endif %}
       {% endif %}
     </div>
-    {% else %}
-    <p class="muted">No users found.</p>
-    {% endif %}
   </div>
 </div>
 {% endblock %}
 
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/users.js') }}"></script>
+{% endblock %}
