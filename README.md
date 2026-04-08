@@ -4,6 +4,26 @@ A production-ready Flask web application for managing students, courses, and use
 
 ---
 
+## 🚀 Features
+
+* 🔐 Authentication system (Register / Login / Logout)
+* 🧑‍💼 Role-based access control:
+
+  * **Admin**
+  * **Instructor**
+  * **Student**
+* 🎓 Student–Course **many-to-many relationship**
+* 📸 Profile picture upload (with validation)
+* 🔗 Course enrollment & unenrollment APIs
+* 🔍 Dynamic search (via Fetch API)
+* 📄 Pagination (UI + API)
+* ⚙️ Clean architecture (Routes → Services)
+* 🧪 Full test coverage with pytest
+* 🌱 Automatic database seeding
+* 🎨 Modern UI (Bootstrap + custom styling)
+
+---
+
 ## 📌 Project Overview
 
 This project is an expanded version of the Student Management Dashboard built with Flask. It supports:
@@ -19,15 +39,17 @@ This project is an expanded version of the Student Management Dashboard built wi
 - REST API endpoints
 - SQLite database with SQLAlchemy
 - Seeded demo data for admin, instructor, students, courses, and enrollments
+- Error handling (JSON + HTML)
+- CI-ready structure
 
 ---
 ## 🌿 Git Branching Strategy
 
-This project follows a simple Git workflow:
-
--   `main` → stable production-ready branch
--   `dev` → main development branch
--   `feature/*` → feature branches created from `dev`
+| Branch      | Purpose            |
+| ----------- | ------------------ |
+| `main`      | Stable production  |
+| `dev`       | Active development |
+| `feature/*` | Feature branches   |
 
 ### Example workflow
 
@@ -74,11 +96,11 @@ git checkout -b feature/readme-docs
 -   Added pagination to HTML pages and APIs
 -   Added relationship-based filtering where applicable
 
-### Milestone 6 --- Relationship Testing
+### Milestone 6 --- Testing
 
--   Added tests for enrollments
--   Added tests for duplicate enrollment prevention
--   Added tests for cascade delete behavior
+-   Relationship tests
+-   API tests
+-   Error handling tests
 
 ### Milestone 7 --- Documentation and Cleanup
 
@@ -93,6 +115,7 @@ git checkout -b feature/readme-docs
 -   SQLAlchemy
 -   SQLite
 -   Flask-Login
+-   Flask-WTF (CSRF protection)
 -   Jinja2
 -   HTML/CSS
 -   Pytest
@@ -124,7 +147,8 @@ Student Management Dashboard - Pro Edition/
 │   ├── services/
 │   ├── templates/
 │   ├── static/
-│   │   └── uploads/
+│   │   ├── uploads/
+│   │   └── js/
 │   ├── config.py
 │   ├── extensions.py
 │   └── __init__.py
@@ -193,145 +217,52 @@ Student Management Dashboard - Pro Edition/
 
 ## 🌐 API Endpoints
 
-### 🎓 Students API
+### 🎓 Students
 
-#### Get all students (with search, filtering & pagination)
-
-```http
-GET /api/students?search=ali&course_id=1&page=1&per_page=5
-```
-
-#### Create student
-
-```
-POST /api/students
-Content-Type: application/json
-
-{
-  "name": "Ali Ahmad",
-  "student_id": "12110002",
-  "course_ids": [1, 2]
-}
-```
-
-#### Get single student
-
-```
-GET /api/students/<student_id>
-```
-
-#### Update student
-
-```
-PUT /api/students/<student_id>
-```
-
-#### Delete student
-
-```
-DELETE /api/students/<student_id>
-```
-
-#### Enroll student in course
-
-```
-POST /api/students/<student_id>/enroll
-
-{
-  "course_id": 1
-}
-```
-
-#### Unenroll student
-
-```
-POST /api/students/<student_id>/unenroll
-```
+| Method | Endpoint                      | Description    |
+| ------ | ----------------------------- | -------------- |
+| GET    | `/api/students`               | List students  |
+| POST   | `/api/students`               | Create student |
+| GET    | `/api/students/<id>`          | Get student    |
+| PUT    | `/api/students/<id>`          | Update         |
+| DELETE | `/api/students/<id>`          | Delete         |
+| POST   | `/api/students/<id>/enroll`   | Enroll         |
+| POST   | `/api/students/<id>/unenroll` | Unenroll       |
 
 ---
 
-### 📘 Courses API
+### 📘 Courses
 
-### 📘 Courses API
-
-#### Get all courses (with search, filtering & pagination)
-
-```http
-GET /api/courses?search=data&student_db_id=1&page=1&per_page=5
-```
-
-#### Create course
-
-```
-POST /api/courses
-```
-
-#### Get course
-
-```
-GET /api/courses/<id>
-```
-#### Get students enrolled in a course
-```
-GET /api/courses/<id>/students
-```
-#### Update course
-
-```
-PUT /api/courses/<id>
-```
-
-#### Delete course
-
-```
-DELETE /api/courses/<id>
-```
+| Method | Endpoint                     |
+| ------ | ---------------------------- |
+| GET    | `/api/courses`               |
+| POST   | `/api/courses`               |
+| GET    | `/api/courses/<id>`          |
+| PUT    | `/api/courses/<id>`          |
+| DELETE | `/api/courses/<id>`          |
+| GET    | `/api/courses/<id>/students` |
 
 ---
 
-### 👤 Users API (Admin Only)
+### 👤 Users (Admin Only)
 
-#### Get all users
+| Method | Endpoint          |
+| ------ | ----------------- |
+| GET    | `/api/users`      |
+| POST   | `/api/users`      |
+| GET    | `/api/users/<id>` |
+| PUT    | `/api/users/<id>` |
+| DELETE | `/api/users/<id>` |
 
-```
-GET /api/users
-```
-
-#### Create user
-
-```
-POST /api/users
-```
-
-#### Get user
-
-```
-GET /api/users/<id>
-```
-
-#### Update user
-
-```
-PUT /api/users/<id>
-```
-
-#### Delete user
-
-```
-DELETE /api/users/<id>
-```
-
-⚠️ Note: Admin cannot delete their own account (protected in backend logic).
+⚠️ Admin cannot delete their own account.
 
 ---
 
-## 🔐 Authentication Notes
-This app uses session-based authentication (Flask-Login).
+## 🔐 Authentication
 
-* All endpoints require login
-- Login via `/login`
-- Session cookie is used automatically
-* Role-based access enforced:
+* Session-based authentication (Flask-Login)
+* All `/api/*` routes require login 
+* Role-based permissions:
 
   * Admin → full access
   * Instructor → manage students & courses
@@ -388,21 +319,31 @@ This app uses session-based authentication (Flask-Login).
   * 400 → ValidationError
   * 404 → NotFoundError
   * 409 → ConflictError
-* API returns JSON for all `/api/*` routes 
-
-
-
-
+* API returns JSON for all `/api/*` routes
 
 ---
-## 🖼️ Profile Picture Upload
 
-- Supported: png, jpg, jpeg, gif
-- Max size: 2MB
-- Folder: app/static/uploads
+## 🖼️ Profile Upload
+
+* Allowed: png, jpg, jpeg, gif
+* Max size: 2MB
+* Stored in: `app/static/uploads`
+
+---
+
+## ⚙️ Environment Variables
+
+Create a `.env` file:
+
+```
+SECRET_KEY=your_secret_key
+DATABASE_URL=sqlite:///students.db
+FLASK_ENV=development
+```
+
+---
 
 
-------------------------------------------------------------------------
 
 ## ⚙️ Setup
 
