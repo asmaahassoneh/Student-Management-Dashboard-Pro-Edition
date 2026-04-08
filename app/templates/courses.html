@@ -2,6 +2,12 @@
 {% block title %}Courses{% endblock %}
 
 {% block content %}
+<script>
+  window.coursesPageConfig = {
+    csrfToken: "{{ csrf_token() }}"
+  };
+</script>
+
 <div class="app-container">
   <div class="course-student-card">
     <div class="top-bar">
@@ -9,23 +15,44 @@
       <a class="btn" href="{{ url_for('course_page_bp.add_course') }}">Add Course</a>
     </div>
 
-    <form method="GET" action="{{ url_for('course_page_bp.list_courses') }}" class="search-form" style="margin: 18px 0;">
-      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <input
-          type="text"
-          name="search"
-          placeholder="Search by name or course code"
-          value="{{ search }}"
-          style="flex: 1; min-width: 220px;"
-        />
-        <button type="submit" class="btn">Search</button>
+    <form
+      id="courseSearchForm"
+      class="search-form"
+      style="margin: 18px 0;"
+    >
+      <div class="row g-2" style="margin: 18px 0;">
+        <div class="col-md-8">
+          <input
+            id="courseSearchInput"
+            class="form-control"
+            type="text"
+            name="search"
+            placeholder="Search by name or course code"
+            value="{{ search or '' }}"
+          />
+        </div>
 
-        {% if search %}
-        <a class="btn secondary-btn" href="{{ url_for('course_page_bp.list_courses') }}">Clear</a>
-        {% endif %}
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-primary w-100">
+            Search
+          </button>
+        </div>
+
+        <div class="col-md-2">
+          <button
+            type="button"
+            id="clearCourseSearch"
+            class="btn btn-secondary w-100"
+          >
+            Clear
+          </button>
+        </div>
       </div>
     </form>
-    {% if courses %}
+
+    <div id="courseMessage"></div>
+    <div id="courseLoading" class="search-loading">Loading courses...</div>
+
     <table class="student-table">
       <thead>
         <tr>
@@ -36,33 +63,97 @@
           <th>Actions</th>
         </tr>
       </thead>
-      <tbody>
-        {% for course in courses %}
-        <tr>
-          <td data-label="Name">{{ course.name }}</td>
-          <td data-label="Code">{{ course.code }}</td>
-          <td data-label="Description">{{ course.description or "-" }}</td>
-          <td data-label="Students Count">{{ course.students|length }}</td>
-          <td data-label="Actions">
-            <a class="btn" href="{{ url_for('course_page_bp.edit_course', course_id=course.id) }}">Edit</a>
+      <tbody id="coursesTableBody">
+        {% if courses %}
+          {% for course in courses %}
+          <tr>
+            <td data-label="Name">{{ course.name }}</td>
+            <td data-label="Code">{{ course.code }}</td>
+            <td data-label="Description">{{ course.description or "-" }}</td>
+            <td data-label="Students Count">{{ course.students|length }}</td>
+            <td data-label="Actions">
+              <a
+                class="btn"
+                href="{{ url_for('course_page_bp.edit_course', course_id=course.id) }}"
+              >
+                Edit
+              </a>
 
-            <form
-              method="POST"
-              action="{{ url_for('course_page_bp.remove_course', course_id=course.id) }}"
-              style="display:inline;"
-              onsubmit="return confirm('Delete this course?');"
-            >
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="btnDelete danger-btn">Delete</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
+              <form
+                method="POST"
+                action="{{ url_for('course_page_bp.remove_course', course_id=course.id) }}"
+                style="display:inline;"
+                onsubmit="return confirm('Delete this course?');"
+              >
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btnDelete danger-btn">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="5" class="table-empty">No courses found.</td>
+          </tr>
+        {% endif %}
       </tbody>
     </table>
-    {% else %}
-    <p class="muted">No courses found.</p>
-    {% endif %}
+
+    <div id="coursesPagination" class="pagination-ui">
+      {% if pagination and pagination.pages > 1 %}
+        {% if pagination.has_prev %}
+        <button
+          type="button"
+          class="btn secondary-btn"
+          data-page="{{ pagination.prev_num }}"
+        >
+          Previous
+        </button>
+        {% else %}
+        <button
+          type="button"
+          class="btn secondary-btn"
+          disabled
+        >
+          Previous
+        </button>
+        {% endif %}
+
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=1) %}
+          {% if page_num %}
+          <button
+            type="button"
+            class="btn secondary-btn page-number {% if page_num == pagination.page %}active{% endif %}"
+            data-page="{{ page_num }}"
+          >
+            {{ page_num }}
+          </button>
+          {% endif %}
+        {% endfor %}
+
+        {% if pagination.has_next %}
+        <button
+          type="button"
+          class="btn secondary-btn"
+          data-page="{{ pagination.next_num }}"
+        >
+          Next
+        </button>
+        {% else %}
+        <button
+          type="button"
+          class="btn secondary-btn"
+          disabled
+        >
+          Next
+        </button>
+        {% endif %}
+      {% endif %}
+    </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/courses.js') }}"></script>
 {% endblock %}
