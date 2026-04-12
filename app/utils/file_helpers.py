@@ -6,10 +6,7 @@ from app.services.service_exceptions import ValidationError
 
 
 def allowed_file(filename, allowed_extensions):
-    return (
-        "." in filename
-        and filename.rsplit(".", 1)[1].lower() in allowed_extensions
-    )
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed_extensions
 
 
 def save_profile_picture(file, upload_folder=None, allowed_extensions=None):
@@ -33,6 +30,4 @@ def save_profile_picture(file, upload_folder=None, allowed_extensions=None):
         return result["secure_url"]
     except Exception as exc:
         print("Cloudinary upload error:", exc)
-        raise ValidationError(
-            "Failed to upload profile picture."
-        ) from exc
+        raise ValidationError("Failed to upload profile picture.") from exc
