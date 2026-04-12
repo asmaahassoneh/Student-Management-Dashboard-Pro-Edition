@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <td>
               ${
                 user.profile_picture
-                  ? `<img src="/static/uploads/${user.profile_picture}" alt="Profile" class="table-profile-pic" />`
+                  ? `<img src="${user.profile_picture}" alt="Profile" class="table-profile-pic" />`
                   : "-"
               }
             </td>
