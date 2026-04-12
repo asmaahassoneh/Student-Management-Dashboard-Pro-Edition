@@ -88,7 +88,7 @@
             <div class="user-mini-card">
               {% if current_user.profile_picture %}
               <img
-                src="{{ url_for('static', filename='uploads/' + current_user.profile_picture) }}"
+                src="{{ current_user.profile_picture }}"
                 alt="Profile"
                 class="nav-profile-pic"
               />

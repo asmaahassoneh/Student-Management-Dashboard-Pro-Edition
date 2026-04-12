@@ -1,3 +1,5 @@
+import os
+
 from flask import Flask, jsonify, redirect, render_template, request, url_for, flash
 
 from app.config import Config
@@ -11,11 +13,14 @@ from app.routes.student_api_routes import student_api_bp
 from app.routes.student_page_routes import student_page_bp
 from app.routes.user_api_routes import user_api_bp
 from app.routes.user_page_routes import user_page_bp
+from app.utils.cloudinary_config import configure_cloudinary
 
 
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+    if not app.config.get("TESTING", False):
+        configure_cloudinary()
 
     db.init_app(app)
     login_manager.init_app(app)
@@ -69,8 +74,9 @@ def create_app(config_class=Config):
     with app.app_context():
         db.create_all()
 
-        from seed import seed
+        if os.getenv("SEED_DB", "false").lower() == "true":
+            from seed import seed
 
-        seed()
+            seed()
 
     return app

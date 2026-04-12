@@ -66,7 +66,7 @@
             <td>
               {% if user.profile_picture %}
               <img
-                src="{{ url_for('static', filename='uploads/' + user.profile_picture) }}"
+                src="{{ user.profile_picture }}"
                 alt="Profile"
                 class="table-profile-pic"
               />
