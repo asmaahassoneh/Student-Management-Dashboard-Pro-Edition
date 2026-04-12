@@ -1,5 +1,4 @@
 import io
-import os
 
 from werkzeug.datastructures import FileStorage
 
@@ -46,15 +45,27 @@ def test_save_profile_picture_returns_none_for_invalid_extension(tmp_path):
     assert result is None
 
 
-def test_save_profile_picture_saves_valid_file(tmp_path):
+def test_save_profile_picture_saves_valid_file(monkeypatch):
     file_storage = FileStorage(
         stream=io.BytesIO(b"fake-image-content"),
         filename="profile.PNG",
     )
-    result = save_profile_picture(file_storage, str(tmp_path), {"png", "jpg", "jpeg"})
+
+    def fake_upload(file, folder, resource_type):
+        return {
+            "secure_url": "https://res.cloudinary.com/demo/image/upload/profile.png"
+        }
+
+    monkeypatch.setattr("cloudinary.uploader.upload", fake_upload)
+
+    result = save_profile_picture(
+        file_storage,
+        allowed_extensions={"png", "jpg", "jpeg"},
+    )
+
     assert result is not None
     assert result.endswith(".png")
-    assert os.path.exists(tmp_path / result)
+    assert result == "https://res.cloudinary.com/demo/image/upload/profile.png"
 
 
 def test_detect_role_and_student_id_student_email():
